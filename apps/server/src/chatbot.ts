@@ -30,17 +30,24 @@ export function getDealerChatbotReply(
       `📜 **Bhabhi Rules Quick Guide**:\n` +
       `1. **Opening**: Seat holding Ace of Spades (A♠) leads Trick 1.\n` +
       `2. **Must Follow Suit**: You MUST play the led suit if you have it.\n` +
-      `3. **Thoko (Cut)**: If void in the led suit, you must play any other suit to CUT.\n` +
+      `3. **Thola (Cut)**: If void in the led suit, you must play any other suit to CUT (Thola).\n` +
       `4. **Pickup**: When cut, the player who played highest card of the led suit picks up all trick cards!\n` +
       `5. **Get Safe**: Empty your hand to win safety. The last player left with cards is the **BHABHI**!`
     );
   }
 
-  // 2. Thoko / Cut explanation
-  if (q.includes('thoko') || q.includes('cut') || q === '/cut' || q.includes('katna')) {
+  // 2. Thola / Cut explanation
+  if (
+    q.includes('thola') ||
+    q.includes('thoko') ||
+    q.includes('cut') ||
+    q === '/thola' ||
+    q === '/cut' ||
+    q.includes('katna')
+  ) {
     return (
-      `⚡ **What is Thoko (Cut)?**\n` +
-      `When you have NO cards of the suit being played, you MUST cut with another suit! ` +
+      `⚡ **What is Thola (Cut)?**\n` +
+      `When you have NO cards of the suit being played, you give a THOLA by cutting with another suit! ` +
       `The trick ends immediately, and the player with the highest card of the led suit has to pick up ALL cards into their hand!`
     );
   }
@@ -99,7 +106,7 @@ export function getDealerChatbotReply(
     if (led) {
       return `💡 **Dealer's Advice**: Led suit is ${SUIT_NAMES[led] || led}. Follow suit with your highest card if safe, or dump high cards when someone else might win!`;
     }
-    return `💡 **Dealer's Advice**: Try to exhaust suits where you have few cards so you can cut (Thoko) in future tricks!`;
+    return `💡 **Dealer's Advice**: Try to exhaust suits where you have few cards so you can cut (Thola) in future tricks!`;
   }
 
   // 7. Greetings
@@ -126,7 +133,7 @@ export function getDealerChatbotReply(
   if (q.startsWith('/') || q.includes('bot') || q.includes('pandit') || q.includes('dealer')) {
     return (
       `Namaste ${senderName}! I am your Bhabhi Dealer Bot. ` +
-      `You can ask me: **rules**, **cards count**, **thoko**, **whose turn**, or **hint**!`
+      `You can ask me: **rules**, **cards count**, **thola**, **whose turn**, or **hint**!`
     );
   }
 

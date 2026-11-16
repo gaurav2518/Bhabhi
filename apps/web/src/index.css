@@ -2334,16 +2334,49 @@ html, body, #root {
 }
 
 @media (max-width: 600px) {
-  .casino-header { padding: 0 0.75rem; }
+  .casino-header { height: 48px; padding: 0 0.5rem; }
+  .casino-header-left { gap: 0.35rem; }
+  .casino-header-right { gap: 0.35rem; }
+  .brand-logo-spade { font-size: 1.1rem; }
+  .brand-title { font-size: 0.95rem; }
   .control-label { display: none; }
-  .poker-table-rail { border-radius: 80px; padding: 8px; }
-  .poker-table-wood { border-radius: 72px; }
-  .poker-table-felt { border-radius: 68px; }
-  .card-lg { width: 54px; height: 80px; }
-  .card-md { width: 48px; height: 72px; }
-  .trick-gold-ring { min-width: 200px; padding: 0.4rem 0.75rem; }
+  .code-pill { padding: 0.2rem 0.45rem; }
+  .pill-code { font-size: 0.8rem; }
+  .stat-pill { padding: 0.2rem 0.4rem; }
+  .pill-label { font-size: 0.58rem; }
+  .pill-value { font-size: 0.75rem; }
+  .control-pill { padding: 0.35rem 0.5rem; border-radius: 6px; }
+
+  /* Table Arena on Mobile Phones */
+  .table-arena { padding: 0.25rem 0.35rem; height: 100%; }
+  .poker-table-rail { border-radius: 56px; padding: 8px; max-height: calc(100vh - 210px); }
+  .poker-table-wood { border-radius: 50px; padding: 4px; }
+  .poker-table-felt { border-radius: 46px; }
+  .poker-table-felt::before { border-radius: 40px; top: 6px; left: 6px; right: 6px; bottom: 6px; }
+  .felt-spade { font-size: 4.5rem; }
+  .felt-text { font-size: 0.85rem; letter-spacing: 0.2em; }
+
+  /* Opponent Seat Pods */
+  .seat-pod { transform: translate(-50%, -50%) scale(0.85); }
   .seat-avatar { width: 38px; height: 38px; font-size: 1.1rem; }
-  .seat-name { max-width: 58px; font-size: 0.68rem; }
+  .seat-badge-box { padding: 0.15rem 0.4rem; min-width: 60px; }
+  .seat-name { max-width: 55px; font-size: 0.65rem; }
+  .status-pill { font-size: 0.55rem; padding: 0.05rem 0.3rem; }
+
+  /* Center Trick Arena */
+  .center-trick-arena { transform: scale(0.88); }
+  .trick-gold-ring { min-width: 170px; padding: 0.35rem 0.6rem; }
+  .card-md { width: 44px; height: 65px; }
+
+  /* Bottom Player Hand on Mobile */
+  .player-deck-tray { padding-bottom: 0.5rem; }
+  .status-dock { margin-bottom: 0.25rem; }
+  .status-dock-card { padding: 0.35rem 0.75rem; gap: 0.5rem; }
+  .status-dock-desc { font-size: 0.72rem; max-width: 250px; }
+  .card-lg { width: 52px; height: 78px; }
+
+  /* Chat Drawer on Mobile Phones */
+  .chat-drawer-container { max-width: 100%; }
   .toast-container { left: 1rem; right: 1rem; max-width: none; }
   .roster-grid { grid-template-columns: 1fr; }
   .heraldic-banner { width: 95px; padding: 0.5rem 0.35rem 1rem 0.35rem; }
@@ -2351,10 +2384,13 @@ html, body, #root {
   .banner-player-name { font-size: 0.7rem; max-width: 75px; }
 }
 
-@media (max-width: 380px) {
-  .card-lg { width: 48px; height: 72px; }
-  .brand-title { font-size: 1rem; }
-  .stat-pill { display: none; }
+@media (max-width: 420px) {
+  .brand-title { display: none; }
+  .stat-pill:last-of-type { display: none; }
+  .card-lg { width: 44px; height: 68px; }
+  .center-trick-arena { transform: scale(0.78); }
+  .seat-pod { transform: translate(-50%, -50%) scale(0.75); }
+  .status-dock-desc { max-width: 200px; }
 }
 
 /* ==========================================================================

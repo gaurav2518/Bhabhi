@@ -190,8 +190,8 @@ export const useStore = create<AppStore>((set, get) => ({
         });
       } else if (e.type === 'CUT') {
         playCutSound();
-        const msg = `💥 ${getName(e.seat)} cut with ${e.card.id}!`;
-        get().addToast(msg, 'cut');
+        const msg = `⚡ ${getName(e.seat)} gave Thola with ${e.card.id}!`;
+        // No right-side popup toast on Thola to keep the table screen clean and uncluttered
         newLogs.push({
           id: Math.random().toString(36).substring(2, 9),
           trickNumber: currentTrick,
@@ -202,7 +202,7 @@ export const useStore = create<AppStore>((set, get) => ({
       } else if (e.type === 'PICKED_UP') {
         playPickupSound();
         const msg = `📥 ${getName(e.seat)} picked up ${e.cards.length} card(s)!`;
-        get().addToast(msg, 'pickup');
+        // No right-side popup toast on pickup
         newLogs.push({
           id: Math.random().toString(36).substring(2, 9),
           trickNumber: currentTrick,
@@ -213,7 +213,6 @@ export const useStore = create<AppStore>((set, get) => ({
       } else if (e.type === 'TRICK_WON') {
         playWinSound();
         const msg = `🏆 ${getName(e.seat)} won Trick #${currentTrick}!`;
-        get().addToast(msg, 'win');
         newLogs.push({
           id: Math.random().toString(36).substring(2, 9),
           trickNumber: currentTrick,

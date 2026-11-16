@@ -22,7 +22,7 @@ import { getDealerChatbotReply } from './chatbot';
 const PORT = 3001;
 const CLIENT_ORIGIN = 'http://localhost:5173';
 const TURN_TIMEOUT_MS = 30_000;
-const BOT_DELAY_MS = 1400; // Paced smoothly so card plays are visible
+const BOT_DELAY_MS = 1500; // 1.5 seconds wait time as requested
 const RECONNECT_HOLD_MS = 120_000;
 const EMPTY_ROOM_CLEANUP_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -58,6 +58,7 @@ export interface Room {
   lastEvents: GameEvent[];
   turnTimerSeconds: number; // 0 for no limit, or 30, 45, 60, 90 (default 60)
   chatMessages: ChatMessage[];
+  knownVoids: Map<Seat, Set<string>>;
   turnTimer?: NodeJS.Timeout;
   turnDeadline?: number;
   botTurnTimer?: NodeJS.Timeout;
@@ -283,16 +284,22 @@ function executeMove(room: Room, seat: Seat, cardId: string) {
   const isTrickWon = result.events.some(e => e.type === 'TRICK_WON');
   const isTrickEnd = isCut || isTrickWon;
 
-  // Broadcast any dealer commentary to chat
+  // Broadcast any dealer commentary to chat & record known void suits for intelligent bots
   if (isCut) {
     const cutEvent = result.events.find(e => e.type === 'CUT') as any;
     const pickupEvent = result.events.find(e => e.type === 'PICKED_UP') as any;
+    if (cutEvent && trickBefore.ledSuit) {
+      if (!room.knownVoids.has(cutEvent.seat)) {
+        room.knownVoids.set(cutEvent.seat, new Set());
+      }
+      room.knownVoids.get(cutEvent.seat)!.add(trickBefore.ledSuit);
+    }
     const cutter = room.players.find(p => p.seat === cutEvent?.seat);
     const picker = room.players.find(p => p.seat === pickupEvent?.seat);
     if (cutter && picker) {
       sendDealerChatMessage(
         room,
-        `🔥 THOKO! ${cutter.name} cut with ${cutEvent.card.id}! ${picker.name} picks up ${pickupEvent.cards.length} cards!`
+        `🔥 THOLA! ${cutter.name} cut with ${cutEvent.card.id}! ${picker.name} picks up ${pickupEvent.cards.length} cards!`
       );
     }
   }
@@ -330,7 +337,7 @@ function executeMove(room: Room, seat: Seat, cardId: string) {
         broadcastGameState(room);
         broadcastRoomState(room);
         broadcastGameOver(room);
-      }, 2400);
+      }, 1500); // 1.5 seconds wait time as requested
     } else {
       broadcastGameState(room);
       broadcastRoomState(room);
@@ -340,12 +347,12 @@ function executeMove(room: Room, seat: Seat, cardId: string) {
   }
 
   if (isTrickEnd) {
-    // Show completed trick & pickup for 2400ms before clearing and proceeding
+    // Show completed trick & pickup for 1.5s before clearing and proceeding
     broadcastGameStateWithTrick(room, completedPlays, completedLedSuit);
     room.botTurnTimer = setTimeout(() => {
       broadcastGameState(room);
       triggerTurn(room);
-    }, 2400);
+    }, 1500); // 1.5 seconds wait time as requested
   } else {
     triggerTurn(room);
   }
@@ -358,7 +365,7 @@ function executeBotMove(room: Room, seat: Seat) {
   const legal = getLegalMoves(room.gameState, seat);
   if (legal.length === 0) return;
 
-  const chosen = chooseBotMove(room.gameState, seat, legal);
+  const chosen = chooseBotMove(room.gameState, seat, legal, room.knownVoids);
   executeMove(room, seat, chosen.id);
 }
 
@@ -369,9 +376,9 @@ function executeTimeoutMove(room: Room, seat: Seat) {
   const legal = getLegalMoves(room.gameState, seat);
   if (legal.length === 0) return;
 
-  // M1: on timeout play the lowest-rank legal card
-  const lowestCard = legal.reduce((min, c) => (c.rank < min.rank ? c : min), legal[0]!);
-  executeMove(room, seat, lowestCard.id);
+  // On timeout: smart bot strategy avoiding known voids
+  const chosen = chooseBotMove(room.gameState, seat, legal, room.knownVoids);
+  executeMove(room, seat, chosen.id);
 }
 
 io.on('connection', (socket: Socket) => {
@@ -405,11 +412,12 @@ io.on('connection', (socket: Socket) => {
           id: nanoid(),
           sender: 'Bhabhi Dealer 🤖',
           seat: -1,
-          text: `Namaste! Welcome to Table ${code}. I am your AI dealer. Ask me /rules, /cards, or any question!`,
+          text: `Namaste! Welcome to Table ${code}. I am your AI dealer. Ask me /rules, /cards, /thola, or any question!`,
           timestamp: Date.now(),
           isDealer: true,
         },
       ],
+      knownVoids: new Map(),
     };
 
     rooms.set(code, room);
@@ -634,6 +642,7 @@ io.on('connection', (socket: Socket) => {
     room.gameState = createGame(room.players.length, Date.now());
     room.status = 'playing';
     room.lastEvents = [];
+    room.knownVoids = new Map();
 
     broadcastRoomState(room);
     triggerTurn(room);
@@ -708,6 +717,7 @@ io.on('connection', (socket: Socket) => {
     room.gameState = createGame(room.players.length, Date.now());
     room.status = 'playing';
     room.lastEvents = [];
+    room.knownVoids = new Map();
 
     broadcastRoomState(room);
     triggerTurn(room);

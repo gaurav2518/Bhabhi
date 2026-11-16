@@ -7,12 +7,12 @@ const QUICK_ACTIONS = [
   { label: '📜 Rules', text: '/rules' },
   { label: '🃏 Card Counts', text: '/cards' },
   { label: '💡 Turn Hint', text: '/hint' },
-  { label: '⚡ What is Thoko?', text: '/cut' },
+  { label: '⚡ What is Thola?', text: '/thola' },
   { label: '👑 Who has A♠?', text: 'who has ace of spades?' },
 ];
 
 const QUICK_REACTIONS = [
-  '🔥 Thoko!',
+  '🔥 Thola!',
   '😂 Bhabhi bano ge!',
   '👏 Shabash!',
   '⚡ Jaldi chalo!',

@@ -50,8 +50,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                 <ul>
                   <li><strong>T1–T2:</strong> Leader sets the led suit; remaining active players play 1 card clockwise.</li>
                   <li><strong>T3 (Follow Rule):</strong> If you hold any card of the led suit, you <strong>MUST follow suit</strong>.</li>
-                  <li><strong>T4 (Cut Rule):</strong> If you hold NO card of the led suit, you <strong>MUST cut</strong> with another suit. A cut <strong>terminates the trick immediately</strong>!</li>
-                  <li><strong>T5 (First-Trick Restriction):</strong> On the A♠ opening trick, a cut card must be rank <strong>10 or lower</strong>. If you hold only cards &gt; 10, the restriction is waived.</li>
+                  <li><strong>T4 (Thola / Cut Rule):</strong> If you hold NO card of the led suit, you <strong>MUST give Thola (cut)</strong> with another suit. A Thola <strong>terminates the trick immediately</strong>!</li>
+                  <li><strong>T5 (First-Trick Restriction):</strong> On the A♠ opening trick, a Thola card must be rank <strong>10 or lower</strong>. If you hold only cards &gt; 10, the restriction is waived.</li>
                 </ul>
               </div>
 
@@ -61,8 +61,8 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                   <h4>3. RESOLUTION & PICKUPS</h4>
                 </div>
                 <ul>
-                  <li><strong>R1 (No Cut):</strong> If everyone follows suit, the highest card of the led suit wins. All cards are <strong>permanently discarded</strong>. Winner leads next trick.</li>
-                  <li><strong>R2–R3 (Cut Occurred):</strong> The player who played the highest card of the led suit so far picks up <strong>ALL cards</strong> in the trick (including the cut card). That player leads next!</li>
+                  <li><strong>R1 (No Thola):</strong> If everyone follows suit, the highest card of the led suit wins. All cards are <strong>permanently discarded</strong>. Winner leads next trick.</li>
+                  <li><strong>R2–R3 (Thola Occurred):</strong> The player who played the highest card of the led suit so far picks up <strong>ALL cards</strong> in the trick (including the Thola card). That player leads next!</li>
                 </ul>
               </div>
 

@@ -124,10 +124,10 @@ export const TableScreen: React.FC = () => {
     }
 
     if (gameState.trick.isFirstTrick) {
-      return 'Cut Rule (Trick 1): Void in Spades! Cut with rank ≤ 10 (or any card if none ≤ 10).';
+      return 'Trick 1 Rule: Void in Spades! Give Thola with rank ≤ 10 (or any card if none ≤ 10).';
     }
 
-    return `Cut Rule: Void in ${SUIT_NAMES[ledSuit]}! Cut with any other suit to pick up the trick!`;
+    return `Thola Rule: Void in ${SUIT_NAMES[ledSuit]}! Give Thola with any other suit to pass the trick!`;
   }, [isMyTurn, myPlayerState, activeTurnPlayer, currentTurnSeat, gameState, sortedHand]);
 
   if (!roomState || !gameState) {
@@ -176,10 +176,11 @@ export const TableScreen: React.FC = () => {
     const step = (endAngle - startAngle) / (opponentCount - 1);
     const angle = startAngle + (relIndex - 1) * step;
 
-    const radiusX = 40; // %
-    const radiusY = 34; // %
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+    const radiusX = isMobile ? 35 : 40; // %
+    const radiusY = isMobile ? 31 : 34; // %
     const left = 50 + radiusX * Math.cos(angle);
-    const top = 48 + radiusY * Math.sin(angle);
+    const top = (isMobile ? 44 : 48) + radiusY * Math.sin(angle);
 
     return { left: `${left}%`, top: `${top}%` };
   };
@@ -388,7 +389,7 @@ export const TableScreen: React.FC = () => {
                             >
                               <div className="played-by-tag">
                                 <span>{playerMeta?.name || `Seat ${play.seat + 1}`}</span>
-                                {isCutter && <span className="cut-badge">CUT</span>}
+                                {isCutter && <span className="cut-badge">THOLA</span>}
                               </div>
                               <CardView card={play.card} size="md" disabled />
                             </motion.div>
@@ -398,7 +399,7 @@ export const TableScreen: React.FC = () => {
                     </AnimatePresence>
                   </div>
 
-                  {/* Pickup / Cut Reveal Alert Banner */}
+                  {/* Pickup / Thola Reveal Alert Banner */}
                   <AnimatePresence>
                     {pickupAlert && (
                       <motion.div
@@ -409,7 +410,7 @@ export const TableScreen: React.FC = () => {
                       >
                         <div className="pickup-banner-head">
                           {pickupAlert.cutterName ? (
-                            <span className="thoko-tag">⚡ {pickupAlert.cutterName} THOKO!</span>
+                            <span className="thoko-tag">⚡ {pickupAlert.cutterName} THOLA!</span>
                           ) : (
                             <span className="thoko-tag">📥 Trick Resolved</span>
                           )}
