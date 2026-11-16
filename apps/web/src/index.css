@@ -848,6 +848,12 @@ html, body, #root {
   overflow: hidden;
 }
 
+.table-loading-screen {
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #0f172a 0%, #05070d 100%);
+}
+
 /* Casino Header */
 .casino-header {
   height: 52px;

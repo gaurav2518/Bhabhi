@@ -60,11 +60,64 @@ export const TableScreen: React.FC = () => {
     });
   }, [myPlayerState]);
 
-  if (!roomState || !gameState) return null;
+  // Dynamic overlap for player's hand to prevent horizontal scrolling
+  const handCount = sortedHand.length;
+  const cardOverlapMargin = useMemo(() => {
+    if (handCount <= 1) return 0;
+    if (handCount <= 4) return -12;
+    if (handCount <= 7) return -24;
+    if (handCount <= 10) return -34;
+    return -42; // Up to 13 cards fits comfortably within 600px width
+  }, [handCount]);
+
+  // Contextual helper prompt for the player
+  const currentTurnSeat = gameState?.turnSeat;
+  const activeTurnPlayer = useMemo(() => {
+    if (!roomState || currentTurnSeat === undefined) return null;
+    return roomState.players.find(p => p.seat === currentTurnSeat) || null;
+  }, [roomState, currentTurnSeat]);
+
+  const turnInstruction = useMemo(() => {
+    if (!gameState) return 'Entering arena...';
+    if (myPlayerState?.out) {
+      return `Safe! You finished at #${myPlayerState.finishPosition}`;
+    }
+    if (!isMyTurn) {
+      return `Waiting for ${activeTurnPlayer?.name || `Seat ${currentTurnSeat}`}...`;
+    }
+
+    const ledSuit = gameState.trick.ledSuit;
+    if (!ledSuit) {
+      if (gameState.trick.isFirstTrick) {
+        return 'Trick 1: You hold A♠ and must open the game with A♠!';
+      }
+      return 'Lead any card of your choice to start this trick.';
+    }
+
+    const hasLedSuit = sortedHand.some(c => c.suit === ledSuit);
+    if (hasLedSuit) {
+      return `Follow Rule: You must play a ${SUIT_NAMES[ledSuit]} card.`;
+    }
+
+    if (gameState.trick.isFirstTrick) {
+      return 'Cut Rule (Trick 1): Void in Spades! Cut with rank ≤ 10 (or any card if none ≤ 10).';
+    }
+
+    return `Cut Rule: Void in ${SUIT_NAMES[ledSuit]}! Cut with any other suit to pick up the trick!`;
+  }, [isMyTurn, myPlayerState, activeTurnPlayer, currentTurnSeat, gameState, sortedHand]);
+
+  if (!roomState || !gameState) {
+    return (
+      <div className="table-viewport table-loading-screen">
+        <div className="gold-spinner" />
+        <span style={{ color: '#d4af37', fontWeight: 800, marginTop: '1rem', letterSpacing: '0.1em' }}>
+          ENTERING ARENA...
+        </span>
+      </div>
+    );
+  }
 
   const totalPlayers = gameState.players.length;
-  const currentTurnSeat = gameState.turnSeat;
-  const activeTurnPlayer = roomState.players.find(p => p.seat === currentTurnSeat);
 
   const handlePlayCard = (card: Card) => {
     if (!isMyTurn || !legalSet.has(card.id)) return;
@@ -106,45 +159,6 @@ export const TableScreen: React.FC = () => {
 
     return { left: `${left}%`, top: `${top}%` };
   };
-
-  // Dynamic overlap for player's hand to prevent horizontal scrolling
-  const handCount = sortedHand.length;
-  const cardOverlapMargin = useMemo(() => {
-    if (handCount <= 1) return 0;
-    if (handCount <= 4) return -12;
-    if (handCount <= 7) return -24;
-    if (handCount <= 10) return -34;
-    return -42; // Up to 13 cards fits comfortably within 600px width
-  }, [handCount]);
-
-  // Contextual helper prompt for the player
-  const turnInstruction = useMemo(() => {
-    if (myPlayerState?.out) {
-      return `Safe! You finished at #${myPlayerState.finishPosition}`;
-    }
-    if (!isMyTurn) {
-      return `Waiting for ${activeTurnPlayer?.name || `Seat ${currentTurnSeat}`}...`;
-    }
-
-    const ledSuit = gameState.trick.ledSuit;
-    if (!ledSuit) {
-      if (gameState.trick.isFirstTrick) {
-        return 'Trick 1: You hold A♠ and must open the game with A♠!';
-      }
-      return 'Lead any card of your choice to start this trick.';
-    }
-
-    const hasLedSuit = sortedHand.some(c => c.suit === ledSuit);
-    if (hasLedSuit) {
-      return `Follow Rule: You must play a ${SUIT_NAMES[ledSuit]} card.`;
-    }
-
-    if (gameState.trick.isFirstTrick) {
-      return 'Cut Rule (Trick 1): Void in Spades! Cut with rank ≤ 10 (or any card if none ≤ 10).';
-    }
-
-    return `Cut Rule: Void in ${SUIT_NAMES[ledSuit]}! Cut with any other suit to pick up the trick!`;
-  }, [isMyTurn, myPlayerState, activeTurnPlayer, currentTurnSeat, gameState.trick, sortedHand]);
 
   return (
     <div className="table-viewport">
