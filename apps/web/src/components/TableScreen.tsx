@@ -124,7 +124,7 @@ export const TableScreen: React.FC = () => {
     }
 
     if (gameState.trick.isFirstTrick) {
-      return 'Trick 1 Rule: Void in Spades! Give Thola with rank ≤ 10 (or any card if none ≤ 10).';
+      return 'Trick 1 Rule: Void in Spades! Play a Maaf card of rank ≤ 10 (or any card if none ≤ 10).';
     }
 
     return `Thola Rule: Void in ${SUIT_NAMES[ledSuit]}! Give Thola with any other suit to pass the trick!`;

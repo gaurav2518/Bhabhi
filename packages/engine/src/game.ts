@@ -134,7 +134,9 @@ export function applyMove(
   const nextPlays: TrickPlay[] = [...state.trick.plays, { seat, card }];
 
   // T4. If a player holds NO card of the led suit, they MUST play a card of another suit. This is a CUT.
-  const isCut = !isLeader && card.suit !== ledSuit;
+  // In Trick 1 (A♠ opening lead), a non-spade play is MAAF (trial/exempt): it is not a cut,
+  // the round continues normally for all players, all cards are discarded, and A♠ leads Trick 2.
+  const isCut = !isLeader && card.suit !== ledSuit && !state.trick.isFirstTrick;
   if (isCut) {
     events.push({ type: 'CUT', seat, card });
   }

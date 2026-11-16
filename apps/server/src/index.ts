@@ -284,34 +284,14 @@ function executeMove(room: Room, seat: Seat, cardId: string) {
   const isTrickWon = result.events.some(e => e.type === 'TRICK_WON');
   const isTrickEnd = isCut || isTrickWon;
 
-  // Broadcast any dealer commentary to chat & record known void suits for intelligent bots
+  // Record known void suits for intelligent bots when a cut occurs
   if (isCut) {
     const cutEvent = result.events.find(e => e.type === 'CUT') as any;
-    const pickupEvent = result.events.find(e => e.type === 'PICKED_UP') as any;
     if (cutEvent && trickBefore.ledSuit) {
       if (!room.knownVoids.has(cutEvent.seat)) {
         room.knownVoids.set(cutEvent.seat, new Set());
       }
       room.knownVoids.get(cutEvent.seat)!.add(trickBefore.ledSuit);
-    }
-    const cutter = room.players.find(p => p.seat === cutEvent?.seat);
-    const picker = room.players.find(p => p.seat === pickupEvent?.seat);
-    if (cutter && picker) {
-      sendDealerChatMessage(
-        room,
-        `🔥 THOLA! ${cutter.name} cut with ${cutEvent.card.id}! ${picker.name} picks up ${pickupEvent.cards.length} cards!`
-      );
-    }
-  }
-
-  const safeEvents = result.events.filter(e => e.type === 'PLAYER_OUT') as any[];
-  for (const safe of safeEvents) {
-    const safePlayer = room.players.find(p => p.seat === safe.seat);
-    if (safePlayer) {
-      sendDealerChatMessage(
-        room,
-        `🎉 ${safePlayer.name} is SAFE and out of the game! (Rank #${safe.finishPosition})`
-      );
     }
   }
 
@@ -323,13 +303,6 @@ function executeMove(room: Room, seat: Seat, cardId: string) {
   if (room.gameState.phase === 'finished') {
     room.status = 'finished';
     clearRoomTimers(room);
-
-    const bhabhiPlayer = room.players.find(p => p.seat === room.gameState!.bhabhiSeat);
-    if (bhabhiPlayer) {
-      sendDealerChatMessage(room, `💀 Game Over! ${bhabhiPlayer.name} is the BHABHI!`);
-    } else if (room.gameState.isDraw) {
-      sendDealerChatMessage(room, `🤝 Game ended in a DRAW!`);
-    }
 
     if (isTrickEnd) {
       broadcastGameStateWithTrick(room, completedPlays, completedLedSuit);

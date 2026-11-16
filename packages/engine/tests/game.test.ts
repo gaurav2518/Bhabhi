@@ -196,8 +196,17 @@ describe('Bhabhi Rules Spec v1 - Required Scenarios', () => {
     expect(() => applyMove(state, 1, 'D12')).toThrow(IllegalMoveError);
     expect(() => applyMove(state, 1, 'C11')).toThrow(IllegalMoveError);
 
-    // Playing rank <= 10 is legal
-    expect(() => applyMove(state, 1, 'H8')).not.toThrow();
+    // Playing rank <= 10 is legal and is MAAF (does not cut or terminate trick 1)
+    const s1 = applyMove(state, 1, 'H8');
+    expect(s1.events.some(e => e.type === 'CUT')).toBe(false);
+    expect(s1.state.turnSeat).toBe(2);
+    expect(s1.state.trick.plays.length).toBe(2);
+
+    // Seat 2 plays S5, trick 1 concludes normally, S14 wins, cards discarded, Seat 0 leads trick 2
+    const s2 = applyMove(s1.state, 2, 'S5');
+    expect(s2.events.some(e => e.type === 'TRICK_WON' && e.seat === 0)).toBe(true);
+    expect(s2.state.turnSeat).toBe(0);
+    expect(s2.state.discard.length).toBe(3);
   });
 
   // Scenario 5
