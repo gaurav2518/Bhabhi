@@ -13,19 +13,31 @@ import {
   getPublicView,
   IllegalMoveError,
   Seat,
+  Suit,
+  TrickPlay,
 } from '@bhabhi/engine';
 import { chooseBotMove } from './bots';
+import { getDealerChatbotReply } from './chatbot';
 
 const PORT = 3001;
 const CLIENT_ORIGIN = 'http://localhost:5173';
 const TURN_TIMEOUT_MS = 30_000;
-const BOT_DELAY_MS = 700;
+const BOT_DELAY_MS = 1400; // Paced smoothly so card plays are visible
 const RECONNECT_HOLD_MS = 120_000;
 const EMPTY_ROOM_CLEANUP_MS = 10 * 60 * 1000; // 10 minutes
 
 // 5-character uppercase code without 0, O, 1, I
 const ROOM_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const generateRoomCode = customAlphabet(ROOM_CODE_ALPHABET, 5);
+
+export interface ChatMessage {
+  id: string;
+  sender: string;
+  seat: number;
+  text: string;
+  timestamp: number;
+  isDealer?: boolean;
+}
 
 interface RoomPlayer {
   seat: Seat;
@@ -37,7 +49,7 @@ interface RoomPlayer {
   disconnectTimeout?: NodeJS.Timeout;
 }
 
-interface Room {
+export interface Room {
   code: string;
   hostSeat: Seat;
   status: 'waiting' | 'playing' | 'finished';
@@ -45,6 +57,7 @@ interface Room {
   gameState: GameState | null;
   lastEvents: GameEvent[];
   turnTimerSeconds: number; // 0 for no limit, or 30, 45, 60, 90 (default 60)
+  chatMessages: ChatMessage[];
   turnTimer?: NodeJS.Timeout;
   turnDeadline?: number;
   botTurnTimer?: NodeJS.Timeout;
@@ -118,6 +131,57 @@ function broadcastGameState(room: Room) {
     events: room.lastEvents,
     turnDeadline: room.turnDeadline,
   });
+}
+
+function broadcastGameStateWithTrick(
+  room: Room,
+  overridePlays: TrickPlay[],
+  overrideLedSuit: Suit | null
+) {
+  if (!room.gameState) return;
+
+  for (const player of room.players) {
+    if (player.socketId) {
+      const publicView = getPublicView(room.gameState, player.seat);
+      publicView.trick.plays = overridePlays;
+      publicView.trick.ledSuit = overrideLedSuit;
+
+      io.to(player.socketId).emit('game:state', {
+        gameState: publicView,
+        legalCardIds: [], // pause: no inputs allowed
+        events: room.lastEvents,
+        turnDeadline: undefined,
+      });
+    }
+  }
+
+  io.to(room.code).except(room.players.filter(p => !!p.socketId).map(p => p.socketId!)).emit('game:state', {
+    gameState: {
+      ...getPublicView(room.gameState, null),
+      trick: {
+        ...room.gameState.trick,
+        plays: overridePlays,
+        ledSuit: overrideLedSuit,
+      },
+    },
+    legalCardIds: [],
+    events: room.lastEvents,
+    turnDeadline: undefined,
+  });
+}
+
+function sendDealerChatMessage(room: Room, text: string) {
+  const msg: ChatMessage = {
+    id: nanoid(),
+    sender: 'Bhabhi Dealer 🤖',
+    seat: -1,
+    text,
+    timestamp: Date.now(),
+    isDealer: true,
+  };
+  room.chatMessages.push(msg);
+  if (room.chatMessages.length > 60) room.chatMessages.shift();
+  io.to(room.code).emit('chat:message', msg);
 }
 
 function broadcastGameOver(room: Room) {
@@ -208,16 +272,80 @@ function triggerTurn(room: Room) {
 function executeMove(room: Room, seat: Seat, cardId: string) {
   if (!room.gameState) return;
 
+  const trickBefore = room.gameState.trick;
+  const playedCard = room.gameState.players[seat]?.hand.find(c => c.id === cardId);
+
   const result = applyMove(room.gameState, seat, cardId);
   room.gameState = result.state;
   room.lastEvents = result.events;
 
+  const isCut = result.events.some(e => e.type === 'CUT');
+  const isTrickWon = result.events.some(e => e.type === 'TRICK_WON');
+  const isTrickEnd = isCut || isTrickWon;
+
+  // Broadcast any dealer commentary to chat
+  if (isCut) {
+    const cutEvent = result.events.find(e => e.type === 'CUT') as any;
+    const pickupEvent = result.events.find(e => e.type === 'PICKED_UP') as any;
+    const cutter = room.players.find(p => p.seat === cutEvent?.seat);
+    const picker = room.players.find(p => p.seat === pickupEvent?.seat);
+    if (cutter && picker) {
+      sendDealerChatMessage(
+        room,
+        `🔥 THOKO! ${cutter.name} cut with ${cutEvent.card.id}! ${picker.name} picks up ${pickupEvent.cards.length} cards!`
+      );
+    }
+  }
+
+  const safeEvents = result.events.filter(e => e.type === 'PLAYER_OUT') as any[];
+  for (const safe of safeEvents) {
+    const safePlayer = room.players.find(p => p.seat === safe.seat);
+    if (safePlayer) {
+      sendDealerChatMessage(
+        room,
+        `🎉 ${safePlayer.name} is SAFE and out of the game! (Rank #${safe.finishPosition})`
+      );
+    }
+  }
+
+  const completedPlays: TrickPlay[] = playedCard
+    ? [...trickBefore.plays, { seat, card: playedCard }]
+    : trickBefore.plays;
+  const completedLedSuit = trickBefore.ledSuit || playedCard?.suit || null;
+
   if (room.gameState.phase === 'finished') {
     room.status = 'finished';
     clearRoomTimers(room);
-    broadcastGameState(room);
-    broadcastRoomState(room);
-    broadcastGameOver(room);
+
+    const bhabhiPlayer = room.players.find(p => p.seat === room.gameState!.bhabhiSeat);
+    if (bhabhiPlayer) {
+      sendDealerChatMessage(room, `💀 Game Over! ${bhabhiPlayer.name} is the BHABHI!`);
+    } else if (room.gameState.isDraw) {
+      sendDealerChatMessage(room, `🤝 Game ended in a DRAW!`);
+    }
+
+    if (isTrickEnd) {
+      broadcastGameStateWithTrick(room, completedPlays, completedLedSuit);
+      setTimeout(() => {
+        broadcastGameState(room);
+        broadcastRoomState(room);
+        broadcastGameOver(room);
+      }, 2400);
+    } else {
+      broadcastGameState(room);
+      broadcastRoomState(room);
+      broadcastGameOver(room);
+    }
+    return;
+  }
+
+  if (isTrickEnd) {
+    // Show completed trick & pickup for 2400ms before clearing and proceeding
+    broadcastGameStateWithTrick(room, completedPlays, completedLedSuit);
+    room.botTurnTimer = setTimeout(() => {
+      broadcastGameState(room);
+      triggerTurn(room);
+    }, 2400);
   } else {
     triggerTurn(room);
   }
@@ -272,6 +400,16 @@ io.on('connection', (socket: Socket) => {
       gameState: null,
       lastEvents: [],
       turnTimerSeconds: 60, // Default 60 seconds
+      chatMessages: [
+        {
+          id: nanoid(),
+          sender: 'Bhabhi Dealer 🤖',
+          seat: -1,
+          text: `Namaste! Welcome to Table ${code}. I am your AI dealer. Ask me /rules, /cards, or any question!`,
+          timestamp: Date.now(),
+          isDealer: true,
+        },
+      ],
     };
 
     rooms.set(code, room);
@@ -281,6 +419,7 @@ io.on('connection', (socket: Socket) => {
     const response = { ok: true, code, token, seat: 0 };
     if (typeof callback === 'function') callback(response);
     socket.emit('room:created', response);
+    socket.emit('chat:history', { messages: room.chatMessages });
     broadcastRoomState(room);
   });
 
@@ -314,6 +453,7 @@ io.on('connection', (socket: Socket) => {
         const res = { ok: true, code, token: existingPlayer.token, seat: existingPlayer.seat };
         if (typeof callback === 'function') callback(res);
         socket.emit('room:joined', res);
+        socket.emit('chat:history', { messages: room.chatMessages });
 
         broadcastRoomState(room);
         if (room.status === 'playing' && room.gameState) {
@@ -357,6 +497,7 @@ io.on('connection', (socket: Socket) => {
     const res = { ok: true, code, token, seat };
     if (typeof callback === 'function') callback(res);
     socket.emit('room:joined', res);
+    socket.emit('chat:history', { messages: room.chatMessages });
 
     broadcastRoomState(room);
   });
@@ -606,6 +747,39 @@ io.on('connection', (socket: Socket) => {
     checkEmptyRoom(room);
     broadcastRoomState(room);
     if (typeof callback === 'function') callback({ ok: true });
+  });
+
+  // chat:send { text }
+  socket.on('chat:send', (payload: { text: string }) => {
+    const meta = socketToRoom.get(socket.id);
+    if (!meta) return;
+    const room = rooms.get(meta.code);
+    if (!room) return;
+    const player = room.players.find(p => p.token === meta.token);
+    if (!player) return;
+
+    const text = payload?.text?.trim();
+    if (!text || text.length > 300) return;
+
+    const userMsg: ChatMessage = {
+      id: nanoid(),
+      sender: player.name,
+      seat: player.seat,
+      text,
+      timestamp: Date.now(),
+      isDealer: false,
+    };
+    room.chatMessages.push(userMsg);
+    if (room.chatMessages.length > 60) room.chatMessages.shift();
+    io.to(room.code).emit('chat:message', userMsg);
+
+    // Check for dealer chatbot reply
+    const reply = getDealerChatbotReply(text, room, player.name);
+    if (reply) {
+      setTimeout(() => {
+        sendDealerChatMessage(room, reply);
+      }, 450);
+    }
   });
 
   // disconnect

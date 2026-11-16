@@ -34,10 +34,16 @@ export const TableScreen: React.FC = () => {
     mySeat,
     legalCardIds,
     turnDeadline,
+    lastEvents,
     setShowRules,
     soundMuted,
     toggleSound,
     setShowHistory,
+    showChat: _showChat,
+    setShowChat,
+    unreadChatCount,
+    showCardNumbersOnly,
+    toggleCardNumbersOnly,
     addToast,
   } = useStore();
 
@@ -76,6 +82,24 @@ export const TableScreen: React.FC = () => {
     if (!roomState || currentTurnSeat === undefined) return null;
     return roomState.players.find(p => p.seat === currentTurnSeat) || null;
   }, [roomState, currentTurnSeat]);
+
+  // Pickup alert derived from lastEvents so players can see who cut and what was given
+  const pickupAlert = useMemo(() => {
+    if (!lastEvents || lastEvents.length === 0 || !roomState) return null;
+    const cutEvent = lastEvents.find(e => e.type === 'CUT') as any;
+    const pickupEvent = lastEvents.find(e => e.type === 'PICKED_UP') as any;
+
+    if (pickupEvent) {
+      const picker = roomState.players.find(p => p.seat === pickupEvent.seat);
+      const cutter = cutEvent ? roomState.players.find(p => p.seat === cutEvent.seat) : null;
+      return {
+        cutterName: cutter?.name,
+        pickerName: picker?.name || `Seat ${pickupEvent.seat + 1}`,
+        cards: (pickupEvent.cards || []) as Card[],
+      };
+    }
+    return null;
+  }, [lastEvents, roomState]);
 
   const turnInstruction = useMemo(() => {
     if (!gameState) return 'Entering arena...';
@@ -189,6 +213,23 @@ export const TableScreen: React.FC = () => {
 
         <div className="casino-header-right">
           <button
+            className={`control-pill ${showCardNumbersOnly ? 'active-pill' : ''}`}
+            onClick={toggleCardNumbersOnly}
+            title="Toggle Card Count display"
+          >
+            🔢 <span className="control-label">{showCardNumbersOnly ? 'Numbers: Big' : 'Card Count'}</span>
+          </button>
+
+          <button
+            className={`control-pill ${unreadChatCount > 0 ? 'chat-has-unread' : ''}`}
+            onClick={() => setShowChat(true)}
+            title="Table Chat & AI Dealer"
+          >
+            💬 <span className="control-label">Chat & Bot</span>
+            {unreadChatCount > 0 && <span className="unread-counter-dot">{unreadChatCount}</span>}
+          </button>
+
+          <button
             className={`control-pill ${soundMuted ? 'muted' : ''}`}
             onClick={toggleSound}
             title={soundMuted ? 'Unmute Sound' : 'Mute Sound'}
@@ -251,11 +292,23 @@ export const TableScreen: React.FC = () => {
                         {isLastCard && <div className="seat-danger-ring" />}
                       </div>
 
-                      {/* Mini Deck Card Counter */}
+                      {/* Prominent Card Count Number Badge */}
                       {!p.out && (
-                        <div className="seat-deck-count" title={`${p.handSize} cards in hand`}>
-                          <span className="deck-icon">🂠</span>
-                          <span className="deck-number">{p.handSize}</span>
+                        <div
+                          className={`seat-deck-count ${showCardNumbersOnly ? 'numbers-only-mode' : ''} ${
+                            isLastCard ? 'deck-danger-glow' : ''
+                          }`}
+                          title={`${p.handSize} cards in hand`}
+                        >
+                          <span className="deck-number-bold">{p.handSize}</span>
+                          {!showCardNumbersOnly && <span className="deck-unit-tag">CARDS</span>}
+                        </div>
+                      )}
+
+                      {/* Large Floating Number Badge in Numbers-Only Mode */}
+                      {showCardNumbersOnly && !p.out && (
+                        <div className={`seat-large-num-badge ${isLastCard ? 'danger-ring-pulse' : ''}`}>
+                          {p.handSize}
                         </div>
                       )}
                     </div>
@@ -344,6 +397,39 @@ export const TableScreen: React.FC = () => {
                       )}
                     </AnimatePresence>
                   </div>
+
+                  {/* Pickup / Cut Reveal Alert Banner */}
+                  <AnimatePresence>
+                    {pickupAlert && (
+                      <motion.div
+                        className="pickup-reveal-banner"
+                        initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: -15 }}
+                      >
+                        <div className="pickup-banner-head">
+                          {pickupAlert.cutterName ? (
+                            <span className="thoko-tag">⚡ {pickupAlert.cutterName} THOKO!</span>
+                          ) : (
+                            <span className="thoko-tag">📥 Trick Resolved</span>
+                          )}
+                          <span className="pickup-recipient-pill">
+                            <strong>{pickupAlert.pickerName}</strong> picks up {pickupAlert.cards.length} cards
+                          </span>
+                        </div>
+                        <div className="pickup-cards-display">
+                          {pickupAlert.cards.map((c, i) => (
+                            <span
+                              key={i}
+                              className={`pickup-mini-card ${c.suit === 'H' || c.suit === 'D' ? 'card-red' : 'card-black'}`}
+                            >
+                              {c.id}
+                            </span>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -363,9 +449,16 @@ export const TableScreen: React.FC = () => {
               strokeWidth={4}
             />
             <div className="status-dock-info">
-              <span className={`status-dock-title ${isMyTurn ? 'highlight' : ''}`}>
-                {isMyTurn ? 'YOUR TURN' : 'GAME IN PROGRESS'}
-              </span>
+              <div className="status-dock-header-row">
+                <span className={`status-dock-title ${isMyTurn ? 'highlight' : ''}`}>
+                  {isMyTurn ? 'YOUR TURN' : 'GAME IN PROGRESS'}
+                </span>
+                {!myPlayerState?.out && (
+                  <span className="my-hand-count-pill" title="Cards in your hand">
+                    🃏 <strong>{sortedHand.length}</strong> CARDS
+                  </span>
+                )}
+              </div>
               <span className="status-dock-desc">{turnInstruction}</span>
             </div>
           </div>

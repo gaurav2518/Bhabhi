@@ -27,4 +27,13 @@ export interface ToastItem {
   type: 'info' | 'cut' | 'pickup' | 'out' | 'win';
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: string;
+  seat: number;
+  text: string;
+  timestamp: number;
+  isDealer?: boolean;
+}
+
 export type { Card, GameEvent, PublicGameState, Seat, Suit };

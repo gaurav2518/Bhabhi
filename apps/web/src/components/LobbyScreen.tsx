@@ -4,7 +4,8 @@ import { socket } from '../socket';
 import { useStore } from '../store';
 
 export const LobbyScreen: React.FC = () => {
-  const { roomState, mySeat, clearSession, setShowRules, addToast } = useStore();
+  const { roomState, mySeat, clearSession, setShowRules, setShowChat, unreadChatCount, addToast } =
+    useStore();
   const [copied, setCopied] = useState(false);
 
   if (!roomState) return null;
@@ -78,6 +79,13 @@ export const LobbyScreen: React.FC = () => {
           </div>
 
           <div className="lobby-header-actions">
+            <button
+              className={`pill-btn ${unreadChatCount > 0 ? 'unread-glow' : ''}`}
+              onClick={() => setShowChat(true)}
+              title="Table Chat & AI Dealer"
+            >
+              💬 Chat {unreadChatCount > 0 ? `(${unreadChatCount})` : ''}
+            </button>
             <button className="pill-btn" onClick={() => setShowRules(true)}>
               📖 Rules
             </button>

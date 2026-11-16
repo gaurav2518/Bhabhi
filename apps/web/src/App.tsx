@@ -7,8 +7,9 @@ import { TableScreen } from './components/TableScreen';
 import { GameOverModal } from './components/GameOverModal';
 import { RulesModal } from './components/RulesModal';
 import { HistoryModal } from './components/HistoryModal';
+import { ChatDrawer } from './components/ChatDrawer';
 import { ToastContainer } from './components/ToastContainer';
-import type { GameOverData, GameEvent, PublicGameState, RoomState } from './types';
+import type { ChatMessage, GameOverData, GameEvent, PublicGameState, RoomState } from './types';
 
 export const App: React.FC = () => {
   const {
@@ -23,6 +24,8 @@ export const App: React.FC = () => {
     setGameOver,
     showRules,
     setShowRules,
+    addChatMessage,
+    setChatHistory,
     addToast,
     errorMessage,
     setError,
@@ -80,9 +83,19 @@ export const App: React.FC = () => {
       addToast('Disconnected from server. Reconnecting...', 'info');
     };
 
+    const onChatMessage = (msg: ChatMessage) => {
+      addChatMessage(msg);
+    };
+
+    const onChatHistory = (payload: { messages: ChatMessage[] }) => {
+      setChatHistory(payload.messages || []);
+    };
+
     socket.on('room:state', onRoomState);
     socket.on('game:state', onGameState);
     socket.on('game:over', onGameOver);
+    socket.on('chat:message', onChatMessage);
+    socket.on('chat:history', onChatHistory);
     socket.on('error', onError);
     socket.on('disconnect', onDisconnect);
 
@@ -90,6 +103,8 @@ export const App: React.FC = () => {
       socket.off('room:state', onRoomState);
       socket.off('game:state', onGameState);
       socket.off('game:over', onGameOver);
+      socket.off('chat:message', onChatMessage);
+      socket.off('chat:history', onChatHistory);
       socket.off('error', onError);
       socket.off('disconnect', onDisconnect);
     };
@@ -113,6 +128,7 @@ export const App: React.FC = () => {
       <GameOverModal />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
       <HistoryModal />
+      <ChatDrawer />
       <ToastContainer />
     </div>
   );

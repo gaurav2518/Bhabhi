@@ -1,5 +1,13 @@
 import { create } from 'zustand';
-import type { GameOverData, GameEvent, PublicGameState, RoomState, Seat, ToastItem } from './types';
+import type {
+  ChatMessage,
+  GameOverData,
+  GameEvent,
+  PublicGameState,
+  RoomState,
+  Seat,
+  ToastItem,
+} from './types';
 import {
   isSoundMuted,
   setSoundMuted,
@@ -36,6 +44,10 @@ interface AppStore {
   showRules: boolean;
   showHistory: boolean;
   historyLogs: HistoryEntry[];
+  showChat: boolean;
+  chatMessages: ChatMessage[];
+  unreadChatCount: number;
+  showCardNumbersOnly: boolean;
   errorMessage: string | null;
   toasts: ToastItem[];
 
@@ -54,6 +66,10 @@ interface AppStore {
   removeToast: (id: string) => void;
   setShowRules: (show: boolean) => void;
   setShowHistory: (show: boolean) => void;
+  setShowChat: (show: boolean) => void;
+  addChatMessage: (msg: ChatMessage) => void;
+  setChatHistory: (messages: ChatMessage[]) => void;
+  toggleCardNumbersOnly: () => void;
   setError: (msg: string | null) => void;
 }
 
@@ -87,8 +103,32 @@ export const useStore = create<AppStore>((set, get) => ({
   showRules: false,
   showHistory: false,
   historyLogs: [],
+  showChat: false,
+  chatMessages: [],
+  unreadChatCount: 0,
+  showCardNumbersOnly: false,
   errorMessage: null,
   toasts: [],
+
+  setShowChat: (show: boolean) => {
+    set({ showChat: show, unreadChatCount: show ? 0 : get().unreadChatCount });
+  },
+
+  addChatMessage: (msg: ChatMessage) => {
+    const isShowing = get().showChat;
+    set(state => ({
+      chatMessages: [...state.chatMessages.slice(-59), msg],
+      unreadChatCount: isShowing ? 0 : state.unreadChatCount + 1,
+    }));
+  },
+
+  setChatHistory: (messages: ChatMessage[]) => {
+    set({ chatMessages: messages });
+  },
+
+  toggleCardNumbersOnly: () => {
+    set(state => ({ showCardNumbersOnly: !state.showCardNumbersOnly }));
+  },
 
   setPlayerName: (name: string) => {
     localStorage.setItem(LOCAL_NAME_KEY, name);
