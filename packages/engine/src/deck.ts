@@ -1,4 +1,4 @@
-import { Card, Rank, Suit } from './types';
+import type { Card, Rank, Suit } from './types';
 
 export const SUITS: readonly Suit[] = ['S', 'H', 'D', 'C'];
 export const RANKS: readonly Rank[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];

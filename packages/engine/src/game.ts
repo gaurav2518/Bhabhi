@@ -1,10 +1,10 @@
 import { createDeck, deal, mulberry32, shuffle } from './deck';
 import { getLegalMoves } from './rules';
-import {
+import { IllegalMoveError } from './types';
+import type {
   Card,
   GameEvent,
   GameState,
-  IllegalMoveError,
   PlayerState,
   PublicGameState,
   PublicPlayerState,

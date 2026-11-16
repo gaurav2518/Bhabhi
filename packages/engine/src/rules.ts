@@ -1,4 +1,4 @@
-import { Card, GameState, Seat } from './types';
+import type { Card, GameState, Seat } from './types';
 
 /**
  * Encodes legal moves for a player at their turn according to BHABHI RULES SPEC v1.

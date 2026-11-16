@@ -1,122 +1,119 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React, { useEffect } from 'react';
+import { socket } from './socket';
+import { useStore } from './store';
+import { HomeScreen } from './components/HomeScreen';
+import { LobbyScreen } from './components/LobbyScreen';
+import { TableScreen } from './components/TableScreen';
+import { GameOverModal } from './components/GameOverModal';
+import { RulesModal } from './components/RulesModal';
+import { ToastContainer } from './components/ToastContainer';
+import type { GameOverData, GameEvent, PublicGameState, RoomState } from './types';
 
-function App() {
-  const [count, setCount] = useState(0)
+export const App: React.FC = () => {
+  const {
+    roomCode,
+    playerToken,
+    playerName,
+    roomState,
+    setSession,
+    clearSession,
+    setRoomState,
+    setGameState,
+    setGameOver,
+    showRules,
+    setShowRules,
+    addToast,
+    errorMessage,
+    setError,
+  } = useStore();
+
+  useEffect(() => {
+    socket.connect();
+
+    // Auto-reconnect if token exists
+    if (roomCode && playerToken) {
+      socket.emit(
+        'room:join',
+        { code: roomCode, token: playerToken, name: playerName },
+        (res: any) => {
+          if (res && res.ok) {
+            setSession(res.code, res.token, res.seat);
+          } else {
+            clearSession();
+          }
+        }
+      );
+    }
+
+    const onRoomState = (state: RoomState) => {
+      setRoomState(state);
+      if (state.status === 'playing') {
+        setGameOver(null);
+      }
+    };
+
+    const onGameState = (payload: {
+      gameState: PublicGameState;
+      legalCardIds: string[];
+      events: GameEvent[];
+      turnDeadline?: number;
+    }) => {
+      setGameState(
+        payload.gameState,
+        payload.legalCardIds,
+        payload.events,
+        payload.turnDeadline
+      );
+    };
+
+    const onGameOver = (data: GameOverData) => {
+      setGameOver(data);
+    };
+
+    const onError = (err: { message: string }) => {
+      setError(err.message);
+      addToast(`⚠️ ${err.message}`, 'info');
+    };
+
+    const onDisconnect = () => {
+      addToast('Disconnected from server. Reconnecting...', 'info');
+    };
+
+    socket.on('room:state', onRoomState);
+    socket.on('game:state', onGameState);
+    socket.on('game:over', onGameOver);
+    socket.on('error', onError);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      socket.off('room:state', onRoomState);
+      socket.off('game:state', onGameState);
+      socket.off('game:over', onGameOver);
+      socket.off('error', onError);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app-container">
+      {errorMessage && (
+        <div className="global-error-banner" onClick={() => setError(null)}>
+          <span>{errorMessage}</span>
+          <button className="error-close">✕</button>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      )}
 
-      <div className="ticks"></div>
+      {!roomState && <HomeScreen />}
+      {roomState && roomState.status === 'waiting' && <LobbyScreen />}
+      {roomState && (roomState.status === 'playing' || roomState.status === 'finished') && (
+        <TableScreen />
+      )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <GameOverModal />
+      <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
+      <ToastContainer />
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+export default App;
