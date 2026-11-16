@@ -1,5 +1,21 @@
 import { create } from 'zustand';
 import type { GameOverData, GameEvent, PublicGameState, RoomState, Seat, ToastItem } from './types';
+import {
+  isSoundMuted,
+  setSoundMuted,
+  playCardSound,
+  playCutSound,
+  playPickupSound,
+  playWinSound,
+} from './utils/sound';
+
+export interface HistoryEntry {
+  id: string;
+  trickNumber: number;
+  text: string;
+  type: 'play' | 'cut' | 'pickup' | 'win' | 'out';
+  timestamp: string;
+}
 
 interface AppStore {
   playerName: string;
@@ -14,7 +30,12 @@ interface AppStore {
   turnDeadline: number | undefined;
   gameOver: GameOverData | null;
 
+  soundMuted: boolean;
+  toggleSound: () => void;
+
   showRules: boolean;
+  showHistory: boolean;
+  historyLogs: HistoryEntry[];
   errorMessage: string | null;
   toasts: ToastItem[];
 
@@ -32,6 +53,7 @@ interface AppStore {
   addToast: (message: string, type?: ToastItem['type']) => void;
   removeToast: (id: string) => void;
   setShowRules: (show: boolean) => void;
+  setShowHistory: (show: boolean) => void;
   setError: (msg: string | null) => void;
 }
 
@@ -55,7 +77,16 @@ export const useStore = create<AppStore>((set, get) => ({
   turnDeadline: undefined,
   gameOver: null,
 
+  soundMuted: isSoundMuted(),
+  toggleSound: () => {
+    const next = !get().soundMuted;
+    setSoundMuted(next);
+    set({ soundMuted: next });
+  },
+
   showRules: false,
+  showHistory: false,
+  historyLogs: [],
   errorMessage: null,
   toasts: [],
 
@@ -83,6 +114,7 @@ export const useStore = create<AppStore>((set, get) => ({
       gameState: null,
       legalCardIds: [],
       gameOver: null,
+      historyLogs: [],
     });
   },
 
@@ -96,31 +128,79 @@ export const useStore = create<AppStore>((set, get) => ({
     events: GameEvent[],
     turnDeadline?: number
   ) => {
-    // Process new events into toasts
     const roomState = get().roomState;
     const getName = (seat: Seat) => {
       const p = roomState?.players.find(x => x.seat === seat);
-      return p ? p.name : `Seat ${seat}`;
+      return p ? p.name : `Seat ${seat + 1}`;
     };
 
+    const currentTrick = gameState?.trickNumber || 1;
+    const newLogs: HistoryEntry[] = [];
+
     for (const e of events) {
-      if (e.type === 'CUT') {
-        get().addToast(`💥 ${getName(e.seat)} cut the trick!`, 'cut');
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (e.type === 'CARD_PLAYED') {
+        playCardSound();
+        newLogs.push({
+          id: Math.random().toString(36).substring(2, 9),
+          trickNumber: currentTrick,
+          text: `${getName(e.seat)} played ${e.card.id}`,
+          type: 'play',
+          timestamp: nowStr,
+        });
+      } else if (e.type === 'CUT') {
+        playCutSound();
+        const msg = `💥 ${getName(e.seat)} cut with ${e.card.id}!`;
+        get().addToast(msg, 'cut');
+        newLogs.push({
+          id: Math.random().toString(36).substring(2, 9),
+          trickNumber: currentTrick,
+          text: msg,
+          type: 'cut',
+          timestamp: nowStr,
+        });
       } else if (e.type === 'PICKED_UP') {
-        get().addToast(`📥 ${getName(e.seat)} picks up ${e.cards.length} card(s)!`, 'pickup');
+        playPickupSound();
+        const msg = `📥 ${getName(e.seat)} picked up ${e.cards.length} card(s)!`;
+        get().addToast(msg, 'pickup');
+        newLogs.push({
+          id: Math.random().toString(36).substring(2, 9),
+          trickNumber: currentTrick,
+          text: msg,
+          type: 'pickup',
+          timestamp: nowStr,
+        });
       } else if (e.type === 'TRICK_WON') {
-        get().addToast(`🏆 ${getName(e.seat)} won the trick!`, 'win');
+        playWinSound();
+        const msg = `🏆 ${getName(e.seat)} won Trick #${currentTrick}!`;
+        get().addToast(msg, 'win');
+        newLogs.push({
+          id: Math.random().toString(36).substring(2, 9),
+          trickNumber: currentTrick,
+          text: msg,
+          type: 'win',
+          timestamp: nowStr,
+        });
       } else if (e.type === 'PLAYER_OUT') {
-        get().addToast(`🎉 ${getName(e.seat)} is safe and OUT (#${e.finishPosition})!`, 'out');
+        const msg = `🎉 ${getName(e.seat)} is SAFE and OUT (Finish #${e.finishPosition})!`;
+        get().addToast(msg, 'out');
+        newLogs.push({
+          id: Math.random().toString(36).substring(2, 9),
+          trickNumber: currentTrick,
+          text: msg,
+          type: 'out',
+          timestamp: nowStr,
+        });
       }
     }
 
-    set({
+    set(state => ({
       gameState,
       legalCardIds,
       lastEvents: events,
       turnDeadline,
-    });
+      historyLogs: [...state.historyLogs, ...newLogs],
+    }));
   },
 
   setGameOver: (data: GameOverData | null) => {
@@ -145,5 +225,6 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   setShowRules: (show: boolean) => set({ showRules: show }),
+  setShowHistory: (show: boolean) => set({ showHistory: show }),
   setError: (msg: string | null) => set({ errorMessage: msg }),
 }));

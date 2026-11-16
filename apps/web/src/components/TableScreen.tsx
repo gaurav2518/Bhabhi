@@ -28,6 +28,9 @@ export const TableScreen: React.FC = () => {
     legalCardIds,
     turnDeadline,
     setShowRules,
+    soundMuted,
+    toggleSound,
+    setShowHistory,
   } = useStore();
 
   const isMyTurn = gameState ? gameState.turnSeat === mySeat : false;
@@ -87,7 +90,17 @@ export const TableScreen: React.FC = () => {
         </div>
 
         <div className="table-header-right">
-          <button className="btn-icon" onClick={() => setShowRules(true)}>
+          <button
+            className="btn-icon"
+            onClick={toggleSound}
+            title={soundMuted ? 'Unmute Sound' : 'Mute Sound'}
+          >
+            {soundMuted ? '🔇 Muted' : '🔊 Sound'}
+          </button>
+          <button className="btn-icon" onClick={() => setShowHistory(true)} title="Game History">
+            📜 History
+          </button>
+          <button className="btn-icon" onClick={() => setShowRules(true)} title="Rules">
             📖 Rules
           </button>
         </div>
@@ -100,12 +113,15 @@ export const TableScreen: React.FC = () => {
           if (p.seat === mySeat) return null; // local player rendered at bottom
           const roomPlayer = roomState.players.find(rp => rp.seat === p.seat);
           const isTurn = gameState.turnSeat === p.seat;
+          const isLastCard = p.handSize === 1 && !p.out;
           const pos = getOpponentPosition(p.seat);
 
           return (
             <motion.div
               key={p.seat}
-              className={`opponent-pod ${isTurn ? 'pod-turn' : ''} ${p.out ? 'pod-out' : ''}`}
+              className={`opponent-pod ${isTurn ? 'pod-turn' : ''} ${p.out ? 'pod-out' : ''} ${
+                isLastCard ? 'pod-last-card' : ''
+              }`}
               style={{ left: pos.left, top: pos.top }}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -114,12 +130,15 @@ export const TableScreen: React.FC = () => {
               <div className="opponent-avatar">
                 {roomPlayer?.isBot ? '🤖' : '👤'}
                 {isTurn && <div className="turn-pulse-ring" />}
+                {isLastCard && <div className="last-card-glow-ring" />}
               </div>
 
               <div className="opponent-info">
                 <span className="opponent-name">{roomPlayer?.name || `Seat ${p.seat}`}</span>
                 {p.out ? (
                   <span className="badge-out">OUT (#{p.finishPosition})</span>
+                ) : isLastCard ? (
+                  <span className="badge-last-card">⚠️ 1 CARD LEFT!</span>
                 ) : (
                   <span className="badge-cards">{p.handSize} card{p.handSize !== 1 ? 's' : ''}</span>
                 )}

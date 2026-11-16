@@ -6,6 +6,7 @@ import { LobbyScreen } from './components/LobbyScreen';
 import { TableScreen } from './components/TableScreen';
 import { GameOverModal } from './components/GameOverModal';
 import { RulesModal } from './components/RulesModal';
+import { HistoryModal } from './components/HistoryModal';
 import { ToastContainer } from './components/ToastContainer';
 import type { GameOverData, GameEvent, PublicGameState, RoomState } from './types';
 
@@ -111,6 +112,7 @@ export const App: React.FC = () => {
 
       <GameOverModal />
       <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
+      <HistoryModal />
       <ToastContainer />
     </div>
   );
