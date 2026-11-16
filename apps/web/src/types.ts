@@ -11,6 +11,7 @@ export interface RoomState {
   code: string;
   hostSeat: Seat;
   status: 'waiting' | 'playing' | 'finished';
+  turnTimerSeconds?: number;
   players: RoomPlayer[];
 }
 

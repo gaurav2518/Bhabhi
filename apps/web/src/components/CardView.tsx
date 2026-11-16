@@ -48,9 +48,9 @@ export const CardView: React.FC<CardViewProps> = ({
   return (
     <motion.div
       layoutId={`card-${card.id}`}
-      className={`luxury-card card-${size} ${isRed ? 'card-red' : 'card-black'} ${
-        isLegal ? 'card-legal' : ''
-      } ${disabled ? 'card-disabled' : ''} ${className}`}
+      className={`artisan-card card-${size} ${isRed ? 'card-crimson' : 'card-onyx'} ${
+        isLegal ? 'card-playable' : ''
+      } ${disabled ? 'card-dimmed' : ''} ${className}`}
       style={{
         transformOrigin: '50% 100%',
       }}
@@ -66,10 +66,10 @@ export const CardView: React.FC<CardViewProps> = ({
       whileHover={
         isLegal && !disabled
           ? {
-              y: (isFanned ? fanTranslateY : 0) - 26,
-              scale: 1.1,
-              zIndex: 90,
-              boxShadow: '0 16px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(245, 175, 40, 0.8)',
+              y: (isFanned ? fanTranslateY : 0) - 28,
+              scale: 1.09,
+              zIndex: 99,
+              boxShadow: '0 20px 35px rgba(0, 0, 0, 0.65), 0 0 22px rgba(212, 175, 55, 0.85)',
             }
           : undefined
       }
@@ -80,39 +80,50 @@ export const CardView: React.FC<CardViewProps> = ({
         }
       }}
     >
-      {/* Decorative Inner Border */}
-      <div className="card-inner-frame">
-        {/* Top-Left Corner Index */}
-        <div className="card-index card-top-left">
-          <span className="card-rank">{rankStr}</span>
-          <span className="card-suit-pip">{symbol}</span>
+      {/* Outer Ivory Border & Inner Gold Inlay Hairline */}
+      <div className="artisan-inner-frame">
+        {/* Top-Left Index (Rank & Suit) */}
+        <div className="artisan-index index-top-left">
+          <span className="artisan-rank">{rankStr}</span>
+          <span className="artisan-suit-pip">{symbol}</span>
         </div>
 
-        {/* Center Artwork */}
-        <div className="card-artwork">
+        {/* Center Artwork — Theory11 Inspired */}
+        <div className="artisan-center-art">
           {isAceOfSpades ? (
-            <div className="ace-spades-seal">
-              <span className="ace-ornament-top">✦</span>
-              <span className="ace-main-spade">♠</span>
-              <span className="ace-label">BHABHI</span>
+            /* Artisan Iconic Ace of Spades Filigree */
+            <div className="artisan-ace-masterpiece">
+              <div className="ace-sunburst-aura" />
+              <div className="ace-baroque-spade">
+                <span className="spade-glyph">♠</span>
+                <div className="ace-seal-overlay">
+                  <span className="seal-star">✦</span>
+                  <span className="seal-text">ARTISAN</span>
+                  <span className="seal-edition">BHABHI</span>
+                </div>
+              </div>
             </div>
           ) : isFaceCard ? (
-            <div className="face-card-seal">
-              <span className="face-card-crown">♔</span>
-              <span className="face-suit-icon">{symbol}</span>
-              <span className="face-rank-tag">{rankStr}</span>
+            /* Court Face Cards (J, Q, K) Royal Heraldic Medallion */
+            <div className="artisan-court-medallion">
+              <div className="court-frame-gold">
+                <span className="court-crown-icon">♔</span>
+                <span className="court-suit-icon">{symbol}</span>
+                <span className="court-rank-name">{rankStr === 'K' ? 'KING' : rankStr === 'Q' ? 'QUEEN' : 'JACK'}</span>
+              </div>
             </div>
           ) : (
-            <div className="pip-center-pattern">
-              <span className="pip-center-icon">{symbol}</span>
+            /* Number Cards Classic Central Pip */
+            <div className="artisan-pip-cluster">
+              <span className="pip-symbol-hero">{symbol}</span>
             </div>
           )}
         </div>
 
-        {/* Bottom-Right Corner Index (Inverted) */}
-        <div className="card-index card-bottom-right">
-          <span className="card-rank">{rankStr}</span>
-          <span className="card-suit-pip">{symbol}</span>
+        {/* Bottom-Right Inverted Index */}
+        <div className="artisan-index index-bottom-right">
+          <span className="artisan-rank">{rankStr}</span>
+          <span className="artisan-suit-pip">{symbol}</span>
         </div>
       </div>
     </motion.div>

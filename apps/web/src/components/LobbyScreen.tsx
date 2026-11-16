@@ -41,6 +41,20 @@ export const LobbyScreen: React.FC = () => {
     clearSession();
   };
 
+  const handleSetTimer = (seconds: number) => {
+    socket.emit('room:setTimer', { seconds });
+  };
+
+  const currentTimerSec = roomState.turnTimerSeconds ?? 60;
+
+  const timerOptions = [
+    { label: 'No Limit (∞)', value: 0 },
+    { label: '30s', value: 30 },
+    { label: '45s', value: 45 },
+    { label: '60s', value: 60 },
+    { label: '90s', value: 90 },
+  ];
+
   return (
     <div className="lobby-viewport">
       <div className="landing-ambient-glow" />
@@ -71,6 +85,37 @@ export const LobbyScreen: React.FC = () => {
               ✕ Leave
             </button>
           </div>
+        </div>
+
+        {/* Turn Timer Configuration */}
+        <div className="lobby-timer-section">
+          <div className="timer-section-header">
+            <span className="timer-label">⏱️ TURN TIME LIMIT</span>
+            {!isHost && (
+              <span className="timer-current-badge">
+                {currentTimerSec === 0 ? 'No Limit (∞)' : `${currentTimerSec} Seconds`}
+              </span>
+            )}
+          </div>
+
+          {isHost ? (
+            <div className="timer-options-grid">
+              {timerOptions.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`timer-option-btn ${currentTimerSec === opt.value ? 'selected' : ''}`}
+                  onClick={() => handleSetTimer(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="timer-hint-text">
+              Configured by host ({currentTimerSec === 0 ? 'No time limit per turn' : `${currentTimerSec}s per turn`})
+            </span>
+          )}
         </div>
 
         {/* Player Roster Section */}

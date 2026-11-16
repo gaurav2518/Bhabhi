@@ -15,6 +15,11 @@ export const GameOverModal: React.FC = () => {
     return p ? p.name : `Seat ${seat + 1}`;
   };
 
+  const isBotPlayer = (seat: number) => {
+    const p = roomState.players.find(x => x.seat === seat);
+    return p ? p.isBot : false;
+  };
+
   const bhabhiName = gameOver.bhabhiSeat !== null ? getPlayerName(gameOver.bhabhiSeat) : null;
   const isMeBhabhi = gameOver.bhabhiSeat !== null && gameOver.bhabhiSeat === mySeat;
 
@@ -30,92 +35,145 @@ export const GameOverModal: React.FC = () => {
   // Sort finish order by finish position ascending
   const sortedFinishOrder = [...gameOver.finishOrder].sort((a, b) => a.finishPosition - b.finishPosition);
 
-  const getRankMedal = (rank: number) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
-  };
-
   return (
     <div className="modal-backdrop-luxury">
       <motion.div
-        className="game-over-modal-panel"
-        initial={{ opacity: 0, scale: 0.88, y: 30 }}
+        className="armello-victory-modal"
+        initial={{ opacity: 0, scale: 0.85, y: 35 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 280 }}
       >
-        {/* Outcome Header Banner */}
-        <div className="game-over-banner">
-          {gameOver.isDraw ? (
-            <div className="result-crest draw">
-              <span className="crest-symbol">🤝</span>
-              <h1 className="outcome-headline draw">HONORABLE DRAW!</h1>
-              <p className="outcome-subtext">
-                All final active players emptied their cards simultaneously. Everyone is victorious!
-              </p>
-            </div>
-          ) : (
-            <div className="result-crest bhabhi">
-              <span className="crest-symbol">{isMeBhabhi ? '😭' : '🚨'}</span>
-              <h1 className="outcome-headline bhabhi">
-                {isMeBhabhi ? 'YOU ARE THE BHABHI!' : `${bhabhiName} IS THE BHABHI!`}
-              </h1>
-              <p className="outcome-subtext">
-                {isMeBhabhi
-                  ? 'You were the last player holding cards. Better luck in the next round!'
-                  : `${bhabhiName} could not get away in time and takes the loss.`}
-              </p>
-            </div>
+        {/* Royal Arch Crest at Top (Inspired by Armello) */}
+        <div className="royal-crest-crown-header">
+          <div className="royal-trumpets">🎺</div>
+          <div className="royal-crown-emblem">👑</div>
+          <div className="royal-trumpets right">🎺</div>
+        </div>
+
+        <div className="victory-ribbon-bar">
+          <span className="ribbon-tail left" />
+          <h1 className="victory-ribbon-text">
+            {gameOver.isDraw ? 'HONORABLE DRAW' : 'MATCH CONCLUDED'}
+          </h1>
+          <span className="ribbon-tail right" />
+        </div>
+
+        <p className="victory-subtitle-text">
+          {gameOver.isDraw
+            ? 'All remaining contenders emptied their hands simultaneously!'
+            : isMeBhabhi
+            ? 'You were left with cards and crowned the Bhabhi!'
+            : `${bhabhiName} could not get away in time and is the Bhabhi!`}
+        </p>
+
+        {/* Heraldic Player Banners (Inspired by Armello Screen) */}
+        <div className="heraldic-banners-track">
+          {sortedFinishOrder.map(item => {
+            const isMe = item.seat === mySeat;
+            const isWinner = item.finishPosition === 1;
+            const isBot = isBotPlayer(item.seat);
+
+            return (
+              <motion.div
+                key={item.seat}
+                className={`heraldic-banner ${isWinner ? 'banner-champion' : 'banner-safe'} ${
+                  isMe ? 'banner-me' : ''
+                }`}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * item.finishPosition, duration: 0.4 }}
+              >
+                {/* Banner Crown / Crest Top */}
+                <div className="banner-top-finial">
+                  {isWinner ? <span className="champ-crown">👑</span> : <span className="safe-star">✦</span>}
+                </div>
+
+                {/* Avatar Shield */}
+                <div className="banner-avatar-frame">
+                  <div className="banner-avatar-icon">{isBot ? '🤖' : '👤'}</div>
+                  <span className="rank-badge-pill">#{item.finishPosition}</span>
+                </div>
+
+                {/* Player Name */}
+                <div className="banner-name-block">
+                  <span className="banner-player-name" title={getPlayerName(item.seat)}>
+                    {getPlayerName(item.seat)}
+                  </span>
+                  {isMe && <span className="banner-you-tag">(YOU)</span>}
+                </div>
+
+                {/* Outcome Medals & Status */}
+                <div className="banner-stats-tray">
+                  <div className="banner-medal-row">
+                    <span className="medal-icon">{isWinner ? '🥇' : item.finishPosition === 2 ? '🥈' : '🥉'}</span>
+                    <span className="medal-label">{isWinner ? '1st Place' : 'Safe'}</span>
+                  </div>
+                  <div className="banner-ribbon-status">
+                    <span>{isWinner ? 'CHAMPION' : 'SURVIVED'}</span>
+                  </div>
+                </div>
+
+                {/* Banner Bottom Cutout */}
+                <div className="banner-bottom-cutout" />
+              </motion.div>
+            );
+          })}
+
+          {/* Bhabhi (Loser) Heraldic Banner */}
+          {!gameOver.isDraw && gameOver.bhabhiSeat !== null && (
+            <motion.div
+              className={`heraldic-banner banner-bhabhi ${isMeBhabhi ? 'banner-me' : ''}`}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 * (sortedFinishOrder.length + 1), duration: 0.4 }}
+            >
+              <div className="banner-top-finial bhabhi-finial">
+                <span className="bhabhi-skull-top">💀</span>
+              </div>
+
+              <div className="banner-avatar-frame bhabhi-frame">
+                <div className="banner-avatar-icon">
+                  {isBotPlayer(gameOver.bhabhiSeat) ? '🤖' : '👤'}
+                </div>
+                <span className="rank-badge-pill bhabhi-pill">LOSER</span>
+              </div>
+
+              <div className="banner-name-block">
+                <span className="banner-player-name bhabhi-text" title={bhabhiName || ''}>
+                  {bhabhiName}
+                </span>
+                {isMeBhabhi && <span className="banner-you-tag danger">(YOU)</span>}
+              </div>
+
+              <div className="banner-stats-tray bhabhi-tray">
+                <div className="banner-medal-row">
+                  <span className="medal-icon">🚨</span>
+                  <span className="medal-label">The Bhabhi</span>
+                </div>
+                <div className="banner-ribbon-status bhabhi-status">
+                  <span>DEFEATED</span>
+                </div>
+              </div>
+
+              <div className="banner-bottom-cutout bhabhi-cutout" />
+            </motion.div>
           )}
         </div>
 
-        {/* Podium & Finish Order */}
-        <div className="finish-podium-card">
-          <div className="podium-title">FINAL FINISH ORDER</div>
-
-          <div className="podium-list">
-            {sortedFinishOrder.map(item => {
-              const isMe = item.seat === mySeat;
-              return (
-                <div key={item.seat} className={`podium-row ${isMe ? 'podium-row-me' : ''}`}>
-                  <span className="podium-rank">{getRankMedal(item.finishPosition)}</span>
-                  <div className="podium-player">
-                    <span className="podium-name">{getPlayerName(item.seat)}</span>
-                    {isMe && <span className="podium-me-tag">YOU</span>}
-                  </div>
-                  <span className="podium-status-safe">SAFE ✓</span>
-                </div>
-              );
-            })}
-
-            {!gameOver.isDraw && gameOver.bhabhiSeat !== null && (
-              <div className={`podium-row podium-row-bhabhi ${isMeBhabhi ? 'podium-row-me' : ''}`}>
-                <span className="podium-rank bhabhi-icon">💀</span>
-                <div className="podium-player">
-                  <span className="podium-name bhabhi-name">{bhabhiName}</span>
-                  {isMeBhabhi && <span className="podium-me-tag danger">YOU</span>}
-                </div>
-                <span className="podium-status-bhabhi">BHABHI (LOSER)</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Rematch & Navigation Actions */}
-        <div className="game-over-footer-actions">
+        {/* Footer Actions */}
+        <div className="victory-footer-row">
           {isHost ? (
-            <button className="btn-gold-action btn-rematch" onClick={handleRematch}>
-              <span>🔄 PLAY REMATCH</span>
+            <button className="btn-gold-action btn-rematch-royal" onClick={handleRematch}>
+              <span>✦ START REMATCH ✦</span>
             </button>
           ) : (
-            <div className="waiting-rematch-card">
+            <div className="waiting-rematch-pill">
               <div className="gold-spinner" />
               <span>Waiting for host to call rematch...</span>
             </div>
           )}
 
-          <button className="btn-silver-action btn-exit" onClick={handleLeave}>
+          <button className="btn-silver-action" onClick={handleLeave}>
             Exit to Home
           </button>
         </div>

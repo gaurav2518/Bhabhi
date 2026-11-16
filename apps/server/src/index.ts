@@ -44,6 +44,7 @@ interface Room {
   players: RoomPlayer[];
   gameState: GameState | null;
   lastEvents: GameEvent[];
+  turnTimerSeconds: number; // 0 for no limit, or 30, 45, 60, 90 (default 60)
   turnTimer?: NodeJS.Timeout;
   turnDeadline?: number;
   botTurnTimer?: NodeJS.Timeout;
@@ -76,6 +77,7 @@ function getRoomStatePayload(room: Room) {
     code: room.code,
     hostSeat: room.hostSeat,
     status: room.status,
+    turnTimerSeconds: room.turnTimerSeconds ?? 60,
     players: room.players.map(p => ({
       seat: p.seat,
       name: p.name,
@@ -173,7 +175,14 @@ function triggerTurn(room: Room) {
   const player = room.players[turnSeat];
   if (!player) return;
 
-  room.turnDeadline = Date.now() + TURN_TIMEOUT_MS;
+  const timerSec = room.turnTimerSeconds ?? 60;
+  const timeoutMs = timerSec * 1000;
+
+  if (timerSec > 0) {
+    room.turnDeadline = Date.now() + timeoutMs;
+  } else {
+    room.turnDeadline = undefined; // No time limit!
+  }
 
   if (player.isBot) {
     // Bot plays after 700ms
@@ -181,15 +190,16 @@ function triggerTurn(room: Room) {
       executeBotMove(room, turnSeat);
     }, BOT_DELAY_MS);
   } else if (!player.connected) {
-    // Disconnected player: bot plays on turn timeout (30s)
+    // Disconnected player: bot plays on fallback timeout so game doesn't stall
+    const fallbackMs = timerSec > 0 ? timeoutMs : 60_000;
     room.turnTimer = setTimeout(() => {
       executeTimeoutMove(room, turnSeat);
-    }, TURN_TIMEOUT_MS);
-  } else {
-    // Connected human: turn timer 30s
+    }, fallbackMs);
+  } else if (timerSec > 0) {
+    // Connected human with active turn timer
     room.turnTimer = setTimeout(() => {
       executeTimeoutMove(room, turnSeat);
-    }, TURN_TIMEOUT_MS);
+    }, timeoutMs);
   }
 
   broadcastGameState(room);
@@ -261,6 +271,7 @@ io.on('connection', (socket: Socket) => {
       players: [hostPlayer],
       gameState: null,
       lastEvents: [],
+      turnTimerSeconds: 60, // Default 60 seconds
     };
 
     rooms.set(code, room);
@@ -425,6 +436,32 @@ io.on('connection', (socket: Socket) => {
 
     broadcastRoomState(room);
     if (typeof callback === 'function') callback({ ok: true });
+  });
+
+  // room:setTimer { seconds: number }
+  socket.on('room:setTimer', (payload: { seconds: number }, callback?: (res: any) => void) => {
+    const meta = socketToRoom.get(socket.id);
+    if (!meta) return;
+    const room = rooms.get(meta.code);
+    if (!room) return;
+
+    const caller = room.players.find(p => p.token === meta.token);
+    if (!caller || caller.seat !== room.hostSeat) {
+      socket.emit('error', { message: 'Only the host can adjust the turn timer' });
+      if (typeof callback === 'function') callback({ ok: false, error: 'Only host can change timer' });
+      return;
+    }
+
+    if (room.status !== 'waiting') {
+      socket.emit('error', { message: 'Cannot adjust timer after match has started' });
+      if (typeof callback === 'function') callback({ ok: false, error: 'Match already started' });
+      return;
+    }
+
+    const sec = Math.max(0, Math.min(180, Number(payload?.seconds) || 0));
+    room.turnTimerSeconds = sec;
+    broadcastRoomState(room);
+    if (typeof callback === 'function') callback({ ok: true, turnTimerSeconds: sec });
   });
 
   // room:start
