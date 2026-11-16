@@ -5,45 +5,67 @@ import { useStore } from '../store';
 export const HistoryModal: React.FC = () => {
   const { showHistory, setShowHistory, historyLogs } = useStore();
 
+  const getTagIcon = (type: string) => {
+    switch (type) {
+      case 'cut': return '💥 CUT';
+      case 'pickup': return '📥 PICKUP';
+      case 'win': return '🏆 WIN';
+      case 'out': return '🎉 OUT';
+      default: return '🂠 PLAY';
+    }
+  };
+
   return (
     <AnimatePresence>
       {showHistory && (
-        <div className="modal-overlay" onClick={() => setShowHistory(false)}>
+        <div className="modal-backdrop-luxury" onClick={() => setShowHistory(false)}>
           <motion.div
-            className="modal-card history-modal"
-            initial={{ opacity: 0, x: 50, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 50, scale: 0.95 }}
+            className="history-drawer-panel"
+            initial={{ opacity: 0, x: 80 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 80 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 320 }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h2>📜 Game History Log</h2>
-              <button className="btn-close" onClick={() => setShowHistory(false)}>
+            <div className="history-drawer-header">
+              <div className="drawer-title-box">
+                <span className="drawer-icon">📜</span>
+                <h3>GAME HISTORY LOG</h3>
+                <span className="log-count-pill">{historyLogs.length} events</span>
+              </div>
+              <button className="modal-close-btn" onClick={() => setShowHistory(false)}>
                 ✕
               </button>
             </div>
 
-            <div className="modal-body history-body">
+            <div className="history-drawer-body">
               {historyLogs.length === 0 ? (
-                <div className="history-empty">No events recorded yet. Plays will appear here as the game progresses.</div>
+                <div className="drawer-empty-state">
+                  <span className="empty-state-icon">🂠</span>
+                  <p>No plays recorded yet.</p>
+                  <span className="empty-state-sub">Events will appear here as tricks are played.</span>
+                </div>
               ) : (
-                <div className="history-list">
+                <div className="history-timeline">
                   {historyLogs.map(log => (
-                    <div key={log.id} className={`history-item history-item-${log.type}`}>
-                      <div className="history-item-header">
-                        <span className="history-trick">Trick #{log.trickNumber}</span>
-                        <span className="history-time">{log.timestamp}</span>
+                    <div key={log.id} className={`timeline-entry entry-${log.type}`}>
+                      <div className="timeline-header">
+                        <span className={`timeline-tag tag-${log.type}`}>
+                          {getTagIcon(log.type)}
+                        </span>
+                        <span className="timeline-trick">Trick #{log.trickNumber}</span>
+                        <span className="timeline-time">{log.timestamp}</span>
                       </div>
-                      <div className="history-item-text">{log.text}</div>
+                      <div className="timeline-detail">{log.text}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowHistory(false)}>
-                Close
+            <div className="history-drawer-footer">
+              <button className="btn-silver-action btn-sm" onClick={() => setShowHistory(false)}>
+                Close Log
               </button>
             </div>
           </motion.div>

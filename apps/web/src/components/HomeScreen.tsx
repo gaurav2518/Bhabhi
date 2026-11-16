@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { socket } from '../socket';
 import { useStore } from '../store';
 
@@ -51,64 +52,106 @@ export const HomeScreen: React.FC = () => {
   };
 
   return (
-    <div className="home-screen">
-      <div className="home-card">
-        <div className="brand-header">
-          <h1 className="game-title">BHABHI</h1>
-          <p className="game-subtitle">The Classic Indian Card Game</p>
+    <div className="landing-viewport">
+      {/* Background Decorative Ambient Elements */}
+      <div className="landing-ambient-glow" />
+      <div className="suit-watermark suit-spade">♠</div>
+      <div className="suit-watermark suit-heart">♥</div>
+      <div className="suit-watermark suit-club">♣</div>
+      <div className="suit-watermark suit-diamond">♦</div>
+
+      <motion.div
+        className="landing-portal-card"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+      >
+        {/* Crest & Title Header */}
+        <div className="landing-crest">
+          <div className="crest-emblem">
+            <span className="crest-crown">👑</span>
+            <span className="crest-card-pip">♠</span>
+          </div>
+          <h1 className="landing-brand-title">BHABHI</h1>
+          <p className="landing-brand-subtitle">THE CLASSIC INDIAN CARD GAME</p>
         </div>
 
-        <div className="input-group">
-          <label htmlFor="name-input">Your Display Name</label>
-          <input
-            id="name-input"
-            type="text"
-            className="text-input"
-            placeholder="Enter your name"
-            value={nameInput}
-            maxLength={18}
-            onChange={e => setNameInput(e.target.value)}
-          />
+        {/* Feature Pills */}
+        <div className="landing-tags-row">
+          <span className="tag-chip">♠ 2–8 Players</span>
+          <span className="tag-chip">⚡ Real-time Multi</span>
+          <span className="tag-chip">🤖 Smart Bots</span>
         </div>
 
-        <div className="action-section">
+        {/* Name Input */}
+        <div className="form-field-group">
+          <label htmlFor="name-input" className="field-label">
+            Your Player Name
+          </label>
+          <div className="input-with-icon">
+            <span className="input-icon">👤</span>
+            <input
+              id="name-input"
+              type="text"
+              className="premium-input"
+              placeholder="Enter your name (e.g. Vikram)"
+              value={nameInput}
+              maxLength={18}
+              onChange={e => setNameInput(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Action Panels */}
+        <div className="landing-actions-stack">
+          {/* Create Room Button */}
           <button
-            className="btn btn-primary btn-large"
+            className="btn-gold-action"
             disabled={loading}
             onClick={handleCreate}
           >
-            {loading ? 'Creating...' : 'Create New Room'}
+            <span className="btn-icon-gold">✦</span>
+            <span className="btn-text-main">
+              {loading ? 'Creating Arena...' : 'Create New Room'}
+            </span>
+            <span className="btn-arrow">→</span>
           </button>
 
-          <div className="divider">
-            <span>OR JOIN EXISTING</span>
+          <div className="gold-divider">
+            <span className="divider-line" />
+            <span className="divider-label">OR ENTER ROOM PIN</span>
+            <span className="divider-line" />
           </div>
 
-          <form onSubmit={handleJoin} className="join-form">
-            <input
-              type="text"
-              className="text-input code-input"
-              placeholder="ROOM CODE"
-              maxLength={5}
-              value={codeInput}
-              onChange={e => setCodeInput(e.target.value.toUpperCase())}
-            />
+          {/* Join Existing Room Form */}
+          <form onSubmit={handleJoin} className="join-room-row">
+            <div className="code-input-wrapper">
+              <input
+                type="text"
+                className="premium-input pin-input"
+                placeholder="CODE"
+                maxLength={5}
+                value={codeInput}
+                onChange={e => setCodeInput(e.target.value.toUpperCase())}
+              />
+            </div>
             <button
               type="submit"
-              className="btn btn-secondary btn-large"
-              disabled={loading || !codeInput.trim()}
+              className="btn-silver-action"
+              disabled={loading || codeInput.trim().length < 2}
             >
               Join Room
             </button>
           </form>
         </div>
 
-        <div className="footer-links">
-          <button className="link-button" onClick={() => setShowRules(true)}>
-            📖 How to Play & Rules
+        {/* Footer Links */}
+        <div className="landing-footer">
+          <button className="rules-link-btn" onClick={() => setShowRules(true)}>
+            📖 Game Rules & How to Play (Spec v1)
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
