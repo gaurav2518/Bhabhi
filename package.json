@@ -4,7 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm test -w packages/engine",
+    "build:web": "npm run build -w apps/web",
+    "build:server": "npm run build -w apps/server",
+    "start:server": "npm run start -w apps/server",
+    "dev:server": "npm run dev -w apps/server",
+    "dev:web": "npm run dev -w apps/web"
   },
   "keywords": [],
   "author": "",

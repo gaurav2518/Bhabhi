@@ -39,7 +39,6 @@ export const TableScreen: React.FC = () => {
     soundMuted,
     toggleSound,
     setShowHistory,
-    showChat: _showChat,
     setShowChat,
     unreadChatCount,
     showCardNumbersOnly,

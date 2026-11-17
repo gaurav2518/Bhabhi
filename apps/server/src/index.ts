@@ -19,8 +19,15 @@ import {
 import { chooseBotMove } from './bots';
 import { getDealerChatbotReply } from './chatbot';
 
-const PORT = 3001;
-const CLIENT_ORIGIN = 'http://localhost:5173';
+const PORT = Number(process.env.PORT) || 3001;
+const rawOrigin = process.env.CLIENT_ORIGIN;
+const corsOrigin = rawOrigin
+  ? rawOrigin === '*'
+    ? '*'
+    : rawOrigin.includes(',')
+    ? rawOrigin.split(',').map((s) => s.trim())
+    : rawOrigin
+  : true;
 const TURN_TIMEOUT_MS = 30_000;
 const BOT_DELAY_MS = 1500; // 1.5 seconds wait time as requested
 const RECONNECT_HOLD_MS = 120_000;
@@ -69,7 +76,7 @@ const rooms = new Map<string, Room>();
 const socketToRoom = new Map<string, { code: string; token: string }>();
 
 const app = express();
-app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json());
 
 // Health check endpoint
@@ -80,7 +87,7 @@ app.get('/health', (_req: Request, res: Response) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_ORIGIN,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },

@@ -18,29 +18,29 @@ export const CountdownRing: React.FC<CountdownRingProps> = ({
 
   useEffect(() => {
     if (!deadline) {
-      setTimeLeft(null);
       return;
     }
 
-    const remainingMs = Math.max(0, deadline - Date.now());
-    const seconds = Math.ceil(remainingMs / 1000);
-    setTimeLeft(seconds);
-    // If remaining is greater than 30, adapt initialSeconds
-    setInitialSeconds(Math.max(seconds, 30));
+    const tick = () => {
+      const remainingMs = Math.max(0, deadline - Date.now());
+      const seconds = Math.ceil(remainingMs / 1000);
+      setTimeLeft(seconds);
+      setInitialSeconds((prev) => Math.max(prev, seconds, 30));
+    };
 
-    const interval = setInterval(() => {
-      const ms = Math.max(0, deadline - Date.now());
-      setTimeLeft(Math.ceil(ms / 1000));
-    }, 250);
+    tick();
+    const interval = setInterval(tick, 250);
 
     return () => clearInterval(interval);
   }, [deadline]);
+
+  const effectiveTimeLeft = deadline ? timeLeft : null;
 
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
   // If no deadline, display infinity with a calm gold/green ring
-  if (timeLeft === null) {
+  if (effectiveTimeLeft === null) {
     return (
       <div
         className="countdown-ring"
@@ -86,12 +86,12 @@ export const CountdownRing: React.FC<CountdownRingProps> = ({
     );
   }
 
-  const progress = Math.min(1, Math.max(0, timeLeft / Math.max(initialSeconds, 1)));
+  const progress = Math.min(1, Math.max(0, effectiveTimeLeft / Math.max(initialSeconds, 1)));
   const strokeDashoffset = circumference * (1 - progress);
 
-  const ringColor = timeLeft <= 5
+  const ringColor = effectiveTimeLeft <= 5
     ? '#ef4444' // red
-    : timeLeft <= 10
+    : effectiveTimeLeft <= 10
     ? '#f59e0b' // amber
     : isMyTurn
     ? '#10b981' // green
@@ -101,7 +101,7 @@ export const CountdownRing: React.FC<CountdownRingProps> = ({
     <div
       className="countdown-ring"
       style={{ width: size, height: size, position: 'relative' }}
-      title={`${timeLeft}s remaining`}
+      title={`${effectiveTimeLeft}s remaining`}
     >
       <svg width={size} height={size}>
         <circle
@@ -144,7 +144,7 @@ export const CountdownRing: React.FC<CountdownRingProps> = ({
           color: ringColor,
         }}
       >
-        {timeLeft}
+        {effectiveTimeLeft}
       </div>
     </div>
   );

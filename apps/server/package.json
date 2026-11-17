@@ -4,20 +4,21 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "cli": "tsx src/cli.ts"
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit"
   },
   "dependencies": {
     "@bhabhi/engine": "*",
     "cors": "^2.8.6",
     "express": "^5.3.0",
     "nanoid": "^6.0.2",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
 }
