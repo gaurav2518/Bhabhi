@@ -65,15 +65,48 @@ export const TableScreen: React.FC = () => {
     });
   }, [myPlayerState]);
 
-  // Dynamic overlap for player's hand to prevent horizontal scrolling
-  const handCount = sortedHand.length;
+  const [suitFilter, setSuitFilter] = React.useState<Suit | null>(null);
+
+  // Group cards by suit counts
+  const suitCounts = useMemo(() => {
+    const counts: Record<Suit, number> = { S: 0, H: 0, D: 0, C: 0 };
+    for (const card of sortedHand) {
+      counts[card.suit] = (counts[card.suit] || 0) + 1;
+    }
+    return counts;
+  }, [sortedHand]);
+
+  // If filtered suit no longer exists in hand, reset to show all
+  React.useEffect(() => {
+    if (suitFilter && suitCounts[suitFilter] === 0) {
+      setSuitFilter(null);
+    }
+  }, [suitCounts, suitFilter]);
+
+  const displayedCards = useMemo(() => {
+    if (!suitFilter) return sortedHand;
+    const filtered = sortedHand.filter(c => c.suit === suitFilter);
+    return filtered.length > 0 ? filtered : sortedHand;
+  }, [sortedHand, suitFilter]);
+
+  const displayedCount = displayedCards.length;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
+  // Dynamic overlap for player's hand:
+  // On mobile, never hide cards down to an invisible 2px sliver; keep at least 27px visible and allow horizontal scroll
   const cardOverlapMargin = useMemo(() => {
-    if (handCount <= 1) return 0;
-    if (handCount <= 4) return -12;
-    if (handCount <= 7) return -24;
-    if (handCount <= 10) return -34;
-    return -42; // Up to 13 cards fits comfortably within 600px width
-  }, [handCount]);
+    if (displayedCount <= 1) return 0;
+    if (isMobile) {
+      if (displayedCount <= 4) return -8;
+      if (displayedCount <= 7) return -14;
+      if (displayedCount <= 10) return -20;
+      return -25; // 52px card with -25px overlap = 27px always visible!
+    }
+    if (displayedCount <= 4) return -12;
+    if (displayedCount <= 7) return -24;
+    if (displayedCount <= 10) return -34;
+    return -38;
+  }, [displayedCount, isMobile]);
 
   // Contextual helper prompt for the player
   const currentTurnSeat = gameState?.turnSeat;
@@ -156,30 +189,60 @@ export const TableScreen: React.FC = () => {
     }
   };
 
-  // Helper for opponent seat positioning around an ellipse
+  // Helper for opponent seat positioning around the table
   const getOpponentPosition = (seat: Seat) => {
     const effectiveMySeat = mySeat ?? 0;
     const relIndex = (seat - effectiveMySeat + totalPlayers) % totalPlayers;
     const opponentCount = totalPlayers - 1;
 
-    // Direct geometric layout for best visual aesthetics
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
+
+    if (isMobile) {
+      // Mobile-optimized ergonomic layout (keeps seats safely away from center trick cards)
+      if (opponentCount === 1) {
+        return { left: '50%', top: '16%' };
+      }
+      if (opponentCount === 2) {
+        return relIndex === 1
+          ? { left: '24%', top: '18%' }
+          : { left: '76%', top: '18%' };
+      }
+      if (opponentCount === 3) {
+        if (relIndex === 1) return { left: '16%', top: '25%' };
+        if (relIndex === 2) return { left: '50%', top: '14%' };
+        return { left: '84%', top: '25%' };
+      }
+      if (opponentCount === 4) {
+        const positions = [
+          { left: '15%', top: '28%' },
+          { left: '36%', top: '15%' },
+          { left: '64%', top: '15%' },
+          { left: '85%', top: '28%' },
+        ];
+        return positions[relIndex - 1] || { left: '50%', top: '15%' };
+      }
+      // 5 to 7 opponents: arch along top 185deg -> 355deg
+      const startAngle = 185 * (Math.PI / 180);
+      const endAngle = 355 * (Math.PI / 180);
+      const step = (endAngle - startAngle) / Math.max(opponentCount - 1, 1);
+      const angle = startAngle + (relIndex - 1) * step;
+      const left = 50 + 40 * Math.cos(angle);
+      const top = 25 + 16 * Math.sin(angle);
+      return { left: `${left}%`, top: `${top}%` };
+    }
+
+    // Desktop wide layout
     if (opponentCount === 1) {
       return { left: '50%', top: '15%' };
     }
-
-    // Spread opponents along the top 210 degrees arc (from 195deg to -15deg)
-    // 0 = right, 90 = bottom (me), 180 = left, 270 = top
-    // Opponents spread from ~165deg (left) around top (270deg) to ~375deg (right)
     const startAngle = 170 * (Math.PI / 180);
     const endAngle = 370 * (Math.PI / 180);
     const step = (endAngle - startAngle) / (opponentCount - 1);
     const angle = startAngle + (relIndex - 1) * step;
-
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
-    const radiusX = isMobile ? 35 : 40; // %
-    const radiusY = isMobile ? 31 : 34; // %
+    const radiusX = 40;
+    const radiusY = 34;
     const left = 50 + radiusX * Math.cos(angle);
-    const top = (isMobile ? 44 : 48) + radiusY * Math.sin(angle);
+    const top = 48 + radiusY * Math.sin(angle);
 
     return { left: `${left}%`, top: `${top}%` };
   };
@@ -270,6 +333,9 @@ export const TableScreen: React.FC = () => {
                 const isTurn = gameState.turnSeat === p.seat;
                 const isLastCard = p.handSize === 1 && !p.out;
                 const pos = getOpponentPosition(p.seat);
+                const nameMatch = roomPlayer?.name?.match(/^(\p{Extended_Pictographic}|\S+)\s+(.+)$/u);
+                const playerAvatar = roomPlayer?.isBot ? '🤖' : (nameMatch ? nameMatch[1] : '👤');
+                const playerCleanName = nameMatch ? nameMatch[2] : (roomPlayer?.name || `Player ${p.seat + 1}`);
 
                 return (
                   <motion.div
@@ -287,7 +353,7 @@ export const TableScreen: React.FC = () => {
 
                     <div className="seat-avatar-container">
                       <div className="seat-avatar">
-                        {roomPlayer?.isBot ? '🤖' : '👤'}
+                        {playerAvatar}
                         {isTurn && <div className="seat-pulse-ring" />}
                         {isLastCard && <div className="seat-danger-ring" />}
                       </div>
@@ -316,7 +382,7 @@ export const TableScreen: React.FC = () => {
                     <div className="seat-badge-box">
                       <div className="seat-name-row">
                         <span className="seat-name" title={roomPlayer?.name}>
-                          {roomPlayer?.name || `Player ${p.seat + 1}`}
+                          {playerCleanName}
                         </span>
                         {roomPlayer?.isBot && <span className="bot-tag">BOT</span>}
                       </div>
@@ -464,24 +530,58 @@ export const TableScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Fanned Player Hand */}
+        {/* Interactive Player Hand with Suit Filter Tabs */}
         {!myPlayerState?.out && (
           <div className="hand-dock-container">
+            {/* Quick Suit Filter Tabs when player holds more than 6 cards */}
+            {sortedHand.length > 6 && (
+              <div className="suit-filter-nav">
+                <button
+                  type="button"
+                  className={`suit-filter-pill ${!suitFilter ? 'active' : ''}`}
+                  onClick={() => setSuitFilter(null)}
+                >
+                  ALL ({sortedHand.length})
+                </button>
+                {(['S', 'H', 'D', 'C'] as Suit[]).map(s => {
+                  const count = suitCounts[s];
+                  if (count === 0) return null;
+                  const isLedSuit = gameState.trick.ledSuit === s;
+                  const isRed = s === 'H' || s === 'D';
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`suit-filter-pill ${isRed ? 'suit-red' : 'suit-black'} ${
+                        suitFilter === s ? 'active' : ''
+                      } ${isLedSuit && isMyTurn ? 'suit-required-glow' : ''}`}
+                      onClick={() => setSuitFilter(suitFilter === s ? null : s)}
+                      title={`Filter ${SUIT_NAMES[s]}`}
+                    >
+                      <span className="suit-glyph">{SUIT_GLYPHS[s]}</span>
+                      <span className="suit-count">{count}</span>
+                      {isLedSuit && isMyTurn && <span className="suit-star">★</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="hand-fanned-tray">
-              {sortedHand.map((card, idx) => {
-                const mid = (handCount - 1) / 2;
+              {displayedCards.map((card, idx) => {
+                const mid = (displayedCount - 1) / 2;
                 const diff = idx - mid;
 
-                // Elegant curved fan rotation and vertical curve
-                const maxAngle = Math.min(2.5, 35 / Math.max(handCount, 1));
-                const fanRotation = diff * maxAngle;
-                const fanTranslateY = Math.pow(Math.abs(diff) / Math.max(mid, 1), 1.6) * 10;
+                // Subtle fan rotation on mobile when hand is large to prevent cards twisting over each other
+                const maxAngle = isMobile ? Math.min(1.0, 16 / Math.max(displayedCount, 1)) : Math.min(2.5, 35 / Math.max(displayedCount, 1));
+                const fanRotation = isMobile && displayedCount > 6 ? 0 : diff * maxAngle;
+                const fanTranslateY = isMobile && displayedCount > 6 ? 0 : Math.pow(Math.abs(diff) / Math.max(mid, 1), 1.6) * 10;
                 const isLegal = isMyTurn && legalSet.has(card.id);
 
                 return (
                   <div
                     key={card.id}
-                    className="card-hand-wrapper"
+                    className={`card-hand-wrapper ${isLegal ? 'hand-card-legal' : ''}`}
                     style={{
                       marginLeft: idx === 0 ? 0 : `${cardOverlapMargin}px`,
                       zIndex: idx + 1,

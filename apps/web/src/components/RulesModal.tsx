@@ -36,7 +36,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
                   <h4>1. SETUP & RANKS</h4>
                 </div>
                 <ul>
-                  <li><strong>S1–S3:</strong> 2 to 8 players. Standard 52-card deck (no jokers). Rank order: <strong>2 low $\dots$ Ace high</strong>. No trump suits.</li>
+                  <li><strong>S1–S3:</strong> 2 to 8 players. Standard 52-card deck (no jokers). Rank order: <strong>2 low → Ace high (2, 3, 4 … K, A)</strong>. No trump suits.</li>
                   <li><strong>S4–S5:</strong> All 52 cards are dealt clockwise from Seat 0. Extras go to lower seat numbers.</li>
                   <li><strong>S6 (Opening Lead):</strong> The player holding the <strong>Ace of Spades (A♠)</strong> MUST lead the first trick and must play A♠.</li>
                 </ul>

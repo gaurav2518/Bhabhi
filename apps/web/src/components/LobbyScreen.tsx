@@ -139,21 +139,25 @@ export const LobbyScreen: React.FC = () => {
             {roomState.players.map(p => {
               const isMe = p.seat === mySeat;
               const isPlayerHost = p.seat === roomState.hostSeat;
+              const nameMatch = p.name.match(/^(\p{Extended_Pictographic}|\S+)\s+(.+)$/u);
+              const displayAvatar = p.isBot ? '🤖' : (nameMatch ? nameMatch[1] : '👤');
+              const displayName = nameMatch ? nameMatch[2] : p.name;
 
               return (
                 <div key={p.seat} className={`roster-slot ${isMe ? 'slot-me' : ''}`}>
                   <div className="slot-avatar-wrap">
-                    <div className="slot-avatar">{p.isBot ? '🤖' : '👤'}</div>
+                    <div className="slot-avatar">{displayAvatar}</div>
                     {isPlayerHost && <span className="crown-badge" title="Room Host">👑</span>}
                   </div>
 
                   <div className="slot-details">
                     <div className="slot-name-row">
-                      <span className="slot-name">{p.name}</span>
+                      <span className="slot-name">{displayName}</span>
                       {isMe && <span className="you-tag">(YOU)</span>}
                     </div>
                     <div className="slot-badges">
                       <span className="seat-num">Seat {p.seat + 1}</span>
+                      {isPlayerHost && <span className="host-chip">HOST</span>}
                       {p.isBot && <span className="bot-chip">BOT</span>}
                       {!p.isBot && !p.connected && (
                         <span className="offline-chip">OFFLINE</span>
